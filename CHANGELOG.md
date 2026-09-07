@@ -15,6 +15,12 @@ d'un step qui ne fait que vérifier devient inutile.
 Un step qui voudrait vraiment `nil` ou `false` comme état ne le peut plus —
 aucun n'existe dans le code, ni dans la doc.
 
+La datatable d'un step n'est plus imprimée en gris : les séparateurs `|`
+restent gris, les en-têtes de colonne passent en cyan comme les tags, et les
+cases en jaune comme les params déjà mis en valeur dans la phrase du step. Le
+padding reste calculé sur le texte brut — l'alignement des colonnes ne bouge
+pas — et `--no-color` produit la même sortie qu'avant, à l'octet près.
+
 ## Added ##
 
 `--dry-run`, à travers le plugin `:kaocha.plugin/scenari-dry-run` : vérifie que

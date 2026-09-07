@@ -45,7 +45,8 @@
                                    #(str (utils/color-str :yellow %) (utils/ansi-code base)))))
 
 (defn- table-lines
-  "Render a datatable param back to its `| col | col |` gherkin form."
+  "Render a datatable param back to its `| col | col |` gherkin form: pipes grey,
+  headers cyan like the tags, cells yellow like the params in the sentence."
   ;; ponytail: column order follows the row map's key order, which Clojure keeps
   ;; for array-maps (up to 8 columns) and not beyond.
   [rows]
@@ -55,11 +56,17 @@
         cell    (fn [row h] (str (get row h "")))
         widths  (into {} (for [h headers]
                            [h (apply max (count (name h)) (map #(count (cell % h)) rows))]))
-        line    (fn [vals] (str "| "
-                                (string/join " | " (map #(format (str "%-" (max 1 (widths %1)) "s") %2) headers vals))
-                                " |"))]
-    (cons (line (map name headers))
-          (map (fn [row] (line (map #(cell row %) headers))) rows))))
+        pipe    (utils/color-str :grey "|")
+        ;; la largeur est calculee sur le texte brut : on colore la case *apres*
+        ;; l'avoir padee, sinon les codes ANSI comptent dans le %-Ns
+        pad     (fn [h v] (format (str "%-" (max 1 (widths h)) "s") v))
+        line    (fn [color vals]
+                  (str pipe " "
+                       (string/join (str " " pipe " ")
+                                    (map #(utils/color-str color (pad %1 %2)) headers vals))
+                       " " pipe))]
+    (cons (line :cyan (map name headers))
+          (map (fn [row] (line :yellow (map #(cell row %) headers))) rows))))
 
 (defn- param-lines
   "The block params of a step - docstring and datatable - as the lines to print
@@ -67,7 +74,8 @@
   [params]
   (mapcat (fn [{:keys [type val]}]
             (case type
-              :doc-string (concat ["\"\"\""] (string/split-lines val) ["\"\"\""])
+              :doc-string (map #(utils/color-str :grey %)
+                               (concat ["\"\"\""] (string/split-lines val) ["\"\"\""]))
               :table (table-lines val)
               nil))
           params))
@@ -118,8 +126,9 @@
                     " " (highlight-params base sentence)
                     (when glue-ns
                       (str "         " (utils/color-str :grey "(from " glue-ns "/\"" glue-pattern "\")")))))
+      ;; les lignes arrivent deja colorees : le grey global ecraserait la table
       (doseq [line (param-lines params)]
-        (println (utils/color-str :grey "      " line))))))
+        (println (str "      " line))))))
 
 (defmethod t/report :step-succeed [_] (t/with-test-out ""))
 

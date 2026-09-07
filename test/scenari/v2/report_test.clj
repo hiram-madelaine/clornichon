@@ -64,7 +64,15 @@
           "failed sentence in red")
       (is (string/includes? (render {:type :begin-step :step (assoc a-step :status :pending)})
                             (str esc "[90mI create a product named"))
-          "pending sentence in grey"))))
+          "pending sentence in grey")))
+
+  (testing "with colors: the datatable keeps grey pipes around cyan headers and yellow cells"
+    (binding [output/*colored-output* true]
+      (let [out (render {:type :begin-step :step a-step})]
+        (is (string/includes? out (str esc "[90m|" esc "[0m " esc "[36msize" esc "[0m " esc "[90m|" esc "[0m"))
+            "header row: a cyan column name between grey pipes")
+        (is (string/includes? out (str esc "[33m6   " esc "[0m"))
+            "cell in yellow, padded before colouring so the escapes stay out of the width")))))
 
 (deftest wide-datatable-column-order-test
   (testing "a datatable wider than 8 columns keeps its feature-file column order"
