@@ -1,10 +1,10 @@
-# Scenari Development Workflow
+# Clornichon Development Workflow
 
-This document outlines the development workflow when using Scenari for Behavior-Driven Development (BDD) in Clojure projects. It covers the complete journey from writing scenarios to executing and maintaining them.
+This document outlines the development workflow when using Clornichon for Behavior-Driven Development (BDD) in Clojure projects. It covers the complete journey from writing scenarios to executing and maintaining them.
 
 ## Overview
 
-The Scenari development workflow follows these main steps:
+The Clornichon development workflow follows these main steps:
 
 1. Write scenarios in Gherkin format (`.feature` files)
 2. Define feature references using `deffeature`
@@ -143,7 +143,7 @@ You can customize the feature execution with options:
 
 ## 3. Implementing Step Definitions (Glue Code)
 
-Step definitions (also called "glue code") connect the Gherkin steps with actual Clojure code. Scenari provides macros for defining these connections.
+Step definitions (also called "glue code") connect the Gherkin steps with actual Clojure code. Clornichon provides macros for defining these connections.
 
 ### Basic Step Definitions
 
@@ -169,13 +169,13 @@ Step definitions (also called "glue code") connect the Gherkin steps with actual
 
 ### Parameter Handling
 
-Scenari supports various parameter types in step definitions:
+Clornichon supports various parameter types in step definitions:
 
 A sentence matcher is a [cucumber expression](https://github.com/cucumber/cucumber-expressions), so its tokens are cucumber's own:
 
 - `{string}`: a quoted string — single or double quotes — passed without its quotes
 - `{int}`, `{float}`, `{word}`, and the other built-in types
-- `{number}`: scenari's own, kept for the glues written before the others existed; it accepts a sign and decimals
+- `{number}`: clornichon's own, kept for the glues written before the others existed; it accepts a sign and decimals
 - optional text `apple(s)` and alternation `hot/cold`; a literal `(` or `/` must be escaped (`\/`)
 - Table data: Automatically passed as a vector of maps
 - Doc strings: Automatically passed as a multi-line string
@@ -215,7 +215,7 @@ Each step function receives the state from the previous step and must return the
 
 ## 4. Execution Flow
 
-When a feature is executed, Scenari performs the following steps:
+When a feature is executed, Clornichon performs the following steps:
 
 1. **Feature Loading**: Parse the feature file into an AST
 2. **Feature Transformation**: Convert the AST into an executable structure
@@ -232,7 +232,7 @@ When a feature is executed, Scenari performs the following steps:
 
 ### Step Matching Process
 
-The step matching process is a key part of Scenari:
+The step matching process is a key part of Clornichon:
 
 1. Convert the step text from the feature file into a searchable format
 2. Look for step definitions that match the pattern
@@ -244,13 +244,13 @@ The step matching process is a key part of Scenari:
 
 ### Running Tests
 
-The simplest way to execute Scenari tests is through the standard Clojure test runner:
+The simplest way to execute Clornichon tests is through the standard Clojure test runner:
 
 ```bash
 clojure -M:test       # Run all tests
 ```
 
-Scenari integrates with Kaocha for more advanced test execution:
+Clornichon integrates with Kaocha for more advanced test execution:
 
 ```bash
 clojure -M:test -m kaocha.runner                  # Run all tests
@@ -283,7 +283,7 @@ kaocha with colour disabled) for plain output.
 
 ### Debugging Tests
 
-When a step fails, Scenari provides information about the failure:
+When a step fails, Clornichon provides information about the failure:
 
 ```
   Then my cart should contain 1 item         (from my-project.glue/"my cart should contain {number} item")
@@ -304,7 +304,7 @@ The state passed between steps can be examined in the test output when there's a
 
 ### Namespace Resolution
 
-When multiple step definitions match a step, Scenari uses namespace proximity to choose:
+When multiple step definitions match a step, Clornichon uses namespace proximity to choose:
 
 1. Steps in the same namespace as the feature have highest priority
 2. Steps in namespaces with more shared segments have higher priority
@@ -312,11 +312,11 @@ When multiple step definitions match a step, Scenari uses namespace proximity to
 
 ### Custom Parameter Types
 
-You can extend Scenari with custom parameter types by creating specialized regex patterns in your step definitions.
+You can extend Clornichon with custom parameter types by creating specialized regex patterns in your step definitions.
 
 ### Hooks and Lifecycle Management
 
-Scenari supports several hook points for setup and teardown:
+Clornichon supports several hook points for setup and teardown:
 
 - Pre-feature hooks: Run once before the entire feature
 - Post-feature hooks: Run once after the entire feature
@@ -325,6 +325,6 @@ Scenari supports several hook points for setup and teardown:
 
 ## Conclusion
 
-The Scenari development workflow provides a structured approach to Behavior-Driven Development in Clojure. By following the pattern of writing features, defining glue code, and executing tests, you can create living documentation that verifies your application's behavior.
+The Clornichon development workflow provides a structured approach to Behavior-Driven Development in Clojure. By following the pattern of writing features, defining glue code, and executing tests, you can create living documentation that verifies your application's behavior.
 
 Remember that the true value of BDD comes from the collaborative process—use feature files as a communication tool between developers, testers, and domain experts to ensure a shared understanding of requirements and behaviors.

@@ -1,14 +1,17 @@
 (ns kaocha.plugin.scenari-doc
-  "`--doc-html FICHIER` : la documentation HTML des scénarios sélectionnés.
+  "`--doc-html FILE`: the HTML documentation of the selected scenarios.
 
-  Un seul document : sommaire cliquable, une section par feature, une ancre par
-  scénario. Il est écrit depuis le test-plan, donc *après* les filtres - ce qui
-  aurait tourné est exactement ce qui est documenté. Le plugin doit pour cela
-  être listé après `:kaocha.plugin/scenari-tags` dans `:kaocha/plugins`, les
-  filtres de kaocha (`--focus`, `--skip-meta`) étant eux toujours devant.
+  One document: a clickable table of contents, one section per feature, one
+  anchor per scenario. It is written from the test-plan, so *after* the filters -
+  what would have run is exactly what gets documented. For that the plugin must
+  come after `:kaocha.plugin/scenari-tags` in `:kaocha/plugins`; kaocha's own
+  filters (`--focus`, `--skip-meta`) always run first.
 
-  Rien n'est exécuté : c'est de la doc statique, pas un rapport de run. Les
-  suites sont marquées `::testable/skip` une fois le fichier écrit."
+  Nothing is executed: this is static documentation, not a run report. The
+  suites are marked `::testable/skip` once the file is written.
+
+  `--doc-report FILE` writes the same document after the run, annotated with
+  each scenario's and step's result."
   (:require [clojure.java.io :as io]
             [clojure.string :as str]
             [kaocha.output :as output]
@@ -23,21 +26,23 @@
 (defn- esc [s]
   (str/escape (str s) {\& "&amp;" \< "&lt;" \> "&gt;" \" "&quot;"}))
 
+;; l'id tel quel : HTML5 accepte `.` et `/` dans un id, et aplatir la
+;; ponctuation faisait se confondre `:ns/f-s` et le scénario `:ns.f/s`
 (defn- anchor [id]
-  (str/replace (subs (str id) 1) #"[^A-Za-z0-9]+" "-"))
+  (esc (subs (str id) 1)))
 
 (defn- kept
-  "Les enfants non skippés, que le nœud vienne du test-plan (`--doc-html`) ou du
-  résultat du run (`--doc-report`) - les deux arbres ont la même forme, sous
-  deux clés. kaocha.plugin.filter ne marque que le nœud qui ne passe pas, pas
-  ses enfants : il faut donc s'arrêter dessus, pas les tester un par un."
+  "The children not skipped, whether the node comes from the test-plan
+  (`--doc-html`) or from the run's result (`--doc-report`) - both trees have the
+  same shape, under two keys. kaocha.plugin.filter only marks the node that does
+  not pass, not its children: stop on it, do not test them one by one."
   [testable]
   (remove ::testable/skip (or (:kaocha.test-plan/tests testable)
                               (:kaocha.result/tests testable))))
 
 (defn selected-features
-  "Les features scenari retenues par les filtres, chacune avec ses scénarios
-  retenus sous `::scenarios`."
+  "The scenari features kept by the filters, each with its kept scenarios under
+  `::scenarios`."
   [tree]
   (for [suite   (kept tree)
         feature (kept suite)
@@ -120,7 +125,7 @@
        "</section>"))
 
 (defn- toc-html [features]
-  (str "<nav><h2>Sommaire</h2><ul>"
+  (str "<nav><h2>Contents</h2><ul>"
        (apply str
               (for [feature features]
                 (str "<li class=\"" (str/trim (status-class (feature-status feature))) "\">"
@@ -159,13 +164,13 @@ nav li.fail>a{color:#b3261e}
 
 (defn- counts [features]
   (let [scenarios (mapcat ::scenarios features)]
-    (str (count features) " feature(s), " (count scenarios) " scénario(s)"
+    (str (count features) " feature(s), " (count scenarios) " scenario(s)"
          (when-let [failed (seq (filter #(= :fail (:status %)) scenarios))]
-           (str ", " (count failed) " en échec"))
+           (str ", " (count failed) " failed"))
          ".")))
 
 (defn document [features]
-  (str "<!DOCTYPE html><html lang=\"fr\"><head><meta charset=\"utf-8\">"
+  (str "<!DOCTYPE html><html lang=\"en\"><head><meta charset=\"utf-8\">"
        "<title>Features</title><style>" css "</style></head><body>"
        "<h1>Features</h1>"
        "<p>" (counts features) "</p>"
@@ -181,7 +186,7 @@ nav li.fail>a{color:#b3261e}
     (output/warn "No scenario selected, " target " is empty.")))
 
 (defplugin kaocha.plugin/scenari-doc
-  "Génère la documentation HTML des scénarios sélectionnés, sans les exécuter."
+  "Writes the HTML documentation of the selected scenarios, without running them."
 
   (cli-options [opts]
                (-> opts
@@ -196,6 +201,14 @@ nav li.fail>a{color:#b3261e}
             (cond-> config
               doc-html   (assoc ::target-file doc-html)
               doc-report (assoc ::report-file doc-report))))
+
+  (pre-load [config]
+            ;; chacun marque les suites skippées, et l'autre lit alors un arbre vide
+            (when (and (::target-file config) (::report-file config))
+              (output/error-and-throw {:kaocha/early-exit 248} nil
+                                      "--doc-html and --doc-report cannot be combined: "
+                                      "--doc-html runs nothing, so the report would be empty."))
+            config)
 
   (post-load [test-plan]
              ;; ::target-file est une clé de config ordinaire :

@@ -1,6 +1,6 @@
-# Scenari Feature Data Structure Documentation
+# Clornichon Feature Data Structure Documentation
 
-This document describes the internal data structure of a Scenari feature after parsing from Gherkin text. Understanding this structure is helpful when extending or customizing Scenari.
+This document describes the internal data structure of a Clornichon feature after parsing from Gherkin text. Understanding this structure is helpful when extending or customizing Clornichon.
 
 ## Top-Level Structure
 

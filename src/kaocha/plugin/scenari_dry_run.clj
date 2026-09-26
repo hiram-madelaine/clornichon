@@ -1,17 +1,16 @@
 (ns kaocha.plugin.scenari-dry-run
-  "`--dry-run` : vérifie que chaque step des scénarios sélectionnés a bien un
-  glue, sans rien exécuter.
+  "`--dry-run`: checks that every step of the selected scenarios has a glue,
+  without running anything.
 
-  Le glue est résolu au parse (`scenari.v2.core/pickle-step->map` pose
-  `:glue nil` quand rien ne matche), donc tout est déjà dans le test-plan : il
-  suffit de le parcourir. Sans ça un step non défini n'explose qu'à
-  l'exécution, sur un `(apply nil ...)`, *après* les steps précédents et leurs
-  effets de bord.
+  The glue is resolved at parse time (`scenari.v2.core/pickle-step->map` sets
+  `:glue nil` when nothing matches), so everything is already in the test-plan:
+  walking it is enough. Without this an undefined step only blows up when run,
+  on an `(apply nil ...)`, *after* the previous steps and their side effects.
 
-  Sortie non nulle s'il manque un glue, avec le squelette à coller pour
-  chacun. Comme `scenari-doc`, à lister après `:kaocha.plugin/scenari-tags`
-  pour ne vérifier que ce qui aurait tourné - et le walk est le sien, les deux
-  plugins lisent le même arbre filtré."
+  Non-zero exit when a glue is missing, with the skeleton to paste for each.
+  Like `scenari-doc`, list it after `:kaocha.plugin/scenari-tags` to check only
+  what would have run - the walk is scenari-doc's, both plugins read the same
+  filtered tree. It cannot be combined with `--doc-html` / `--doc-report`."
   (:require [clojure.string :as str]
             [kaocha.output :as output]
             [kaocha.plugin :refer [defplugin]]
@@ -20,7 +19,7 @@
             [scenari.v2.glue :as glue]))
 
 (defn undefined-steps
-  "`[feature scenario step]` pour chaque step sans glue, dans l'ordre de l'arbre."
+  "`[feature scenario step]` for every step without a glue, in tree order."
   [test-plan]
   (for [feature  (doc/selected-features test-plan)
         scenario (::doc/scenarios feature)
@@ -29,9 +28,9 @@
     [(::testable/desc feature) (::testable/desc scenario) step]))
 
 (defn report
-  "Les steps manquants groupés par scénario. Le squelette à coller, lui, est
-  déjà imprimé par `find-glue-by-step-regex` au moment du parse (événement
-  `:missing-step`) - ce qui manque là-haut, c'est *où* le step est utilisé."
+  "The missing steps grouped by scenario. The skeleton to paste is already
+  printed by `find-glue-by-step-regex` at parse time (`:missing-step` event) -
+  what that lacks is *where* the step is used."
   [missing]
   (str/join
    "\n"
@@ -42,9 +41,9 @@
      line)))
 
 (defn unused-glues
-  "L'inverse : les step definitions qu'aucun des `steps` n'utilise. Indicatif -
-  un filtre (`--tags`, `--focus`) réduit la sélection, donc grossit la liste, et
-  `all-glues` voit aussi les glues des namespaces de test chargés."
+  "The other way round: the step definitions none of `steps` uses. Indicative
+  only - a filter (`--tags`, `--focus`) shrinks the selection, so grows the list,
+  and `all-glues` also sees the glues of the loaded test namespaces."
   [steps]
   (let [used (set (keep #(get-in % [:glue :ref]) steps))]
     (->> (glue/all-glues)
@@ -56,7 +55,7 @@
                    (str "  " ns "/" name "  \"" step "\""))))
 
 (defplugin kaocha.plugin/scenari-dry-run
-  "Vérifie que tous les steps ont un glue, sans exécuter les scénarios."
+  "Checks that every step has a glue, without running the scenarios."
 
   (cli-options [opts]
                (-> opts
@@ -68,6 +67,15 @@
             (cond-> config
               dry-run      (assoc ::enabled? true)
               unused-glues (assoc ::unused? true))))
+
+  (pre-load [config]
+            ;; chacun marque les suites skippées : le second lirait un arbre vide
+            ;; et le dry run passerait sans avoir rien vérifié
+            (when (and (::enabled? config)
+                       (or (::doc/target-file config) (::doc/report-file config)))
+              (output/error-and-throw {:kaocha/early-exit 248} nil
+                                      "--dry-run cannot be combined with --doc-html or --doc-report."))
+            config)
 
   (post-load [test-plan]
              (if (::enabled? test-plan)

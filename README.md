@@ -1,36 +1,75 @@
+<p align="center">
+  <img src="clornichon.svg" alt="Clornichon" width="220">
+</p>
 
-<a href="https://github.com/jgrodziski/scenari">
-  <img src="https://cdn.rawgit.com/jgrodziski/scenari/68d74b6d/scenari.svg" width="100%" height="250">
-</a>
+# Clornichon - Gherkin specifications, executed by Clojure
 
-# Scenari - Executable Specification / BDD in Clojure
+*Clornichon* = **Clo**jure + **cornichon**, the French gherkin. Write your specifications in plain [Gherkin](https://cucumber.io/docs/gherkin/) (Given/When/Then), bind each step to a Clojure function, run them with `clojure.test` or [Kaocha](https://github.com/lambdaisland/kaocha).
 
-Scenari is an Executable Specification [Clojure](http://clojure.org/) library aimed at writing and executing usage scenarios following the [Behavior-Driven Development](http://en.wikipedia.org/wiki/Behavior-driven_development) - BDD - style. It has an [external DSL](http://www.martinfowler.com/bliki/DomainSpecificLanguage.html), following the [gherkin grammar](https://github.com/cucumber/cucumber/wiki/Gherkin) (in short: Given/When/Then), and execute each scenario's _steps_ with associated Clojure code.
+* **Cucumber's own parser**: feature files are read by [`io.cucumber/gherkin`](https://github.com/cucumber/gherkin), the reference implementation -- ~70 languages, `Rule`, `Background`, `Scenario Outline`, tags, datatables and doc strings.
+* **Cucumber expressions**: `"I add {int} items to the {string} cart"`, or a plain regex when you need one. A missing step prints the glue skeleton to paste.
+* **State threaded through the steps**: each step receives what the previous one returned, like a Ring handler chain -- no world object, no dependency injection.
+* **A Kaocha test type**: features show up in the Kaocha tree, with colored Gherkin output, focus/skip by tag, and a `--dry-run` that catches undefined steps before anything runs.
+
+> [!IMPORTANT]
+> **Performance is a first-class concern.** Clornichon runs the acceptance suites of a large production codebase: 250+ features, 500+ scenarios and 3,400 steps bound to 440 step definitions. At that scale every millisecond spent per step shows, so the library does its work up front -- the glue of each step is resolved once, at parse time, not on every execution -- and a slower run is treated as a regression.
+
+> [!TIP]
+> **Coming from scenari?** The migration is mostly a dependency swap: the namespaces, the macros, the `deffeature` options and the `:kaocha.type/scenari` test type are unchanged. Under the hood the Gherkin parser and the step matching are now Cucumber's own, which makes feature files and step sentences a little stricter. A handful of glues and sentences may need a touch; `--dry-run` finds them without running anything. See [Migrating from scenari](#migrating-from-scenari).
 
 * [Installation](#installation)
+* [Migrating from scenari](#migrating-from-scenari)
 * [Basic Usage](#basic-usage)
 	* [Write Scenarios in plain text]()
 	* [Map steps to Clojure code]()
 	* [Execute Specification and get a report]()
   * [Define "before" and "after" code]()
 * [Documentation](#documentation)
+* [Origins](#origins)
 * [Rationale](#rationale)
 * [ToDoS](#todos)
 
 ## Installation
 
 ```clojure
-;;add this dependency to your project.clj file
-[io.defsquare/scenari "2.0.2"]
-;;or deps.edn
-{
- io.defsquare/scenari {:mvn/version "2.0.2"}
-}
-;;then in your ns statement
+;; deps.edn
+io.github.hiram-madelaine/clornichon {:mvn/version "0.1.0"}
+;; or project.clj
+[io.github.hiram-madelaine/clornichon "0.1.0"]
+
+;; then in your ns statement -- the namespaces keep their scenari.* names
 (:require [scenari.v2.core :as scenari :refer [defgiven defwhen defthen deffeature]])
 ```
 
-[![Clojars Project](https://img.shields.io/clojars/v/io.defsquare/scenari.svg)](https://clojars.org/io.defsquare/scenari)
+[![Clojars Project](https://img.shields.io/clojars/v/io.github.hiram-madelaine/clornichon.svg)](https://clojars.org/io.github.hiram-madelaine/clornichon)
+
+## Migrating from scenari
+
+Clornichon forks scenari 2.0.2. On a real project -- 221 feature files, 1,123 step sentences, 401 glues -- the migration touched 9 glues and 2 sentences.
+
+**What you gain**
+
+* Feature files parsed by [`io.cucumber/gherkin`](https://github.com/cucumber/gherkin): `Background`, `Rule`, every `Examples` block of an outline, tags on `Examples`, ~70 languages, doc string content types, line and column in parse errors.
+* Step sentences matched as [cucumber expressions](https://github.com/cucumber/cucumber-expressions): `{int}` `{float}` `{word}` `{string}`, optional text, alternation. `{number}` is kept, and now takes a sign and decimals.
+* Kaocha: `--tags "@smoke and not @wip"`, `--dry-run`, `--doc-html` / `--doc-report`, focus/skip by tag, a throwing step reported as a failure in junit-xml, colored Gherkin output.
+* A step ending on an assertion (`is` returns a boolean) or a side effect (`nil`) keeps the scenario state instead of replacing it -- no more trailing `state` in a `defthen`.
+
+**How to migrate**
+
+1. Swap the dependency: `io.defsquare/scenari` (or the `io.github.hiram-madelaine/scenari` git dep) becomes `io.github.hiram-madelaine/clornichon`. Your namespaces and the `:kaocha.type/scenari` suites of `tests.edn` stay as they are.
+2. Add the plugin to `tests.edn` and run `--dry-run`: it lists every step that no longer resolves a glue, with the feature and scenario using it, without running anything.
+   ```clojure
+   :kaocha/plugins [:kaocha.plugin/scenari-dry-run]
+   ```
+3. Fix what it reports, then run the suite: what `--dry-run` cannot see shows up as a parse error or a step fn called with the wrong number of arguments. The usual suspects:
+   * **Escape `/`, `(` and `)` in a string sentence matcher** (`"the folders {string} \\/ {string} exist"`), or they read as alternation or optional text.
+   * **A regex glue passes its capture groups**, not the quoted literals of the sentence: make a grouping-only group non-capturing, `(?:consultation|création)`, and capture what you want as an argument, `\"(.+)\"`.
+   * **Start every `.feature` with `Feature:`** (or a tag or comment) -- a bare `Scenario:` is a parse error.
+   * **Non-English features need a `# language: fr` header**, and French writes `Scénario:` with no space before the colon.
+4. A scenario's kaocha id is now qualified by its feature, `:my.ns.my-feature/scenario-name` instead of `:scenario-name` (the bare name stays an alias for `--focus`). In a junit-xml report the testcases' `classname` changes with it, so a CI that tracks test history sees them as new tests.
+5. Only if you read the parsed feature map yourself: `:scenario-name` lost its leading space, and `:feature` is the name alone with the `As a / I want / So that` narrative in `:description`.
+
+The [CHANGELOG](CHANGELOG.md) details every change.
 
 ## Basic Usage
 
@@ -101,7 +140,7 @@ Then write the code that will get executed for each scenario steps:
 
 ### Step expressions
 
-A step's sentence matcher is a [cucumber expression](https://github.com/cucumber/cucumber-expressions): `{int}` `{float}` `{word}` `{string}`, optional text `apple(s)`, alternation `hot/cold`. `{number}` is not a cucumber type — scenari defines it, so the glues written before still work, and it now accepts a sign and decimals. A glue defined with a `#"..."` literal stays a plain regex whatever it contains, matching the whole sentence, and its capture groups become the arguments — make a group non-capturing (`(?:a|b)`) if it is only there to group. A *string* sentence wrapped in `^...$` or `/.../` is read as a regex too.
+A step's sentence matcher is a [cucumber expression](https://github.com/cucumber/cucumber-expressions): `{int}` `{float}` `{word}` `{string}`, optional text `apple(s)`, alternation `hot/cold`. `{number}` is not a cucumber type — clornichon defines it, so the glues written before still work, and it now accepts a sign and decimals. A glue defined with a `#"..."` literal stays a plain regex whatever it contains, matching the whole sentence, and its capture groups become the arguments — make a group non-capturing (`(?:a|b)`) if it is only there to group. A *string* sentence wrapped in `^...$` or `/.../` is read as a regex too.
 
 A literal `/`, `(` or `)` in a sentence must be escaped, or it reads as alternation or optional text:
 
@@ -299,10 +338,10 @@ By default, the scenario state is an empty map `{}`.
 ## Documentation 
 
 ### Development Workflow
-The [Development Workflow Guide](doc/development-workflow.md) provides a comprehensive overview of the full development cycle when using Scenari. It covers writing feature files, defining features in code, implementing step definitions, and understanding how execution works.
+The [Development Workflow Guide](doc/development-workflow.md) provides a comprehensive overview of the full development cycle when using Clornichon. It covers writing feature files, defining features in code, implementing step definitions, and understanding how execution works.
 
 ### Internal Feature Structure
-The [Feature Structure Documentation](doc/feature-structure.md) provides a detailed explanation of the internal data structure used to represent features, scenarios, and steps in Scenari. This is particularly useful when extending or customizing Scenari.
+The [Feature Structure Documentation](doc/feature-structure.md) provides a detailed explanation of the internal data structure used to represent features, scenarios, and steps in Clornichon. This is particularly useful when extending or customizing Clornichon.
 
 ### Declaring same step (glue-code) but different namespace
 Sometimes, you have to declare the same step (using the sentence matcher) but for different context (domain or component level for exemple).
@@ -376,20 +415,26 @@ Then I should get 'processedmydatavalues' from scenario file 'resources/spexec.f
 
 ### Logging
 
+## Origins
+
+Clornichon started as a fork of [scenari](https://github.com/jgrodziski/scenari), written by Jérémie Grodziski at [DefSquare](https://defsquare.io), and has since diverged far enough to go its own way: the Gherkin parser, the step expressions, the Kaocha integration and the reporting have been rewritten. The namespaces still carry the `scenari` name. Thanks to the original authors for the foundations.
+
 ## Rationale
+
+*In the words of scenari's original author:*
 
 I'm used to [JBehave](http://jbehave.org/) and I wanted a BDD framework with an [external DSL](http://www.martinfowler.com/bliki/DomainSpecificLanguage.html) following the [gherkin grammar](https://github.com/cucumber/cucumber/wiki/Gherkin) but also with an easy and fast setup and with steps written in [Clojure](http://clojure.org/). The previous BDD attempt I known in Clojure were all with an [internal DSL](http://www.martinfowler.com/bliki/DomainSpecificLanguage.html). I prefer an external one because I think it's easier to share the scenarios with a domain expert. I you prefer an internal DSL BDD Framework, have a look at [Speclj](http://speclj.com/).
 
-Proper compatibility with traditional clojure.test interfaces is needed, for instance we could make the following relations between Scenari/BDD concepts and clojure.test:
+Proper compatibility with traditional clojure.test interfaces is needed, for instance we could make the following relations between Clornichon/BDD concepts and clojure.test:
 - A scenario execution is like a `deftest`. Particularly, we need to associate steps with Gherkin scenarios defined in one or more feature files. For that we would define this association between steps (`defgiven`, `defwhen` and `defthen`) and scenarios with `(defscenarios "my.feature")`. The execution would then be run with `(run-scenarios)` much like `(run-tests)`. In case of examples table used to feed the scenario with data, each data row would be associated with a new testing context for each steps (the `testing` context description would be the steps sentence with all data placeholder replaced with the actual ones).
 - A scenario's step is like a `testing` context inside a `deftest`. 
 Also, steps and scenarios association must be isolated within namespace to avoid collisions when the same scenarios are used with different steps (like ones for domain test, others for integration testing, etc.).
 The compatibility with clojure.test would also be with its various reports available (`:pass`, `:fail`, etc.) with reports specific to narrative, scenarios and steps. 
 Concerning assertion, steps could contains `clojure.test/is` assertions or throws exception that will be handled properly like clojure.test ones. 
 
-Feature files are parsed by [`io.cucumber/gherkin`](https://github.com/cucumber/gherkin), the reference implementation, so scenari reads what Cucumber reads: the ~70 languages, `Rule`, tags on `Examples`, doc string content types. The *step sentence* — the half gherkin does not cover, the one that binds a sentence to Clojure code — is a [cucumber expression](https://github.com/cucumber/cucumber-expressions), matched and generated by cucumber's own implementation.
+Feature files are parsed by [`io.cucumber/gherkin`](https://github.com/cucumber/gherkin), the reference implementation, so clornichon reads what Cucumber reads: the ~70 languages, `Rule`, tags on `Examples`, doc string content types. The *step sentence* — the half gherkin does not cover, the one that binds a sentence to Clojure code — is a [cucumber expression](https://github.com/cucumber/cucumber-expressions), matched and generated by cucumber's own implementation.
 
-I did a presentation of the internals of the library at the Clojure Paris User Group and the slides are here: ["Anatomy of a BDD Execution Library in Clojure"](https://speakerdeck.com/jgrodziski/anatomy-of-a-bdd-execution-library-in-clojure).
+Jérémie presented the internals of the original library at the Clojure Paris User Group and the slides are here: ["Anatomy of a BDD Execution Library in Clojure"](https://speakerdeck.com/jgrodziski/anatomy-of-a-bdd-execution-library-in-clojure).
 
 ## TODOS
 
@@ -402,7 +447,7 @@ Gaps against Cucumber, roughly by value/effort.
 
 ### Execution
 
-* [ ] `--dry-run`: glues are already resolved at parse time, so this is mostly a matter of reporting the resolution
+* [x] `--dry-run`, through `:kaocha.plugin/scenari-dry-run`: lists the steps that resolve no glue, and with `--unused-glues` the glues no scenario uses, without running anything
 * [ ] an unresolved step should be `:undefined`, not the NPE `run-step` raises by calling `(apply nil ...)`
 * [ ] stop-on-failure? as an option for execution
 * [ ] rerun only the scenarios that failed, `--retry n` for flaky ones
@@ -434,9 +479,11 @@ scenario state replaces it), IDE integration.
 
 ## License
 
-Scenari is released under the terms of the [MIT License](http://opensource.org/licenses/MIT).
+Clornichon is released under the terms of the [MIT License](http://opensource.org/licenses/MIT).
 
 Copyright © 2024 DefSquare defsquare.io
+
+Copyright © 2026 Hiram Madelaine
 
 Permission is hereby granted, free of charge, to any person obtaining a copy of this software and associated documentation files (the "Software"), to deal in the Software without restriction, including without limitation the rights to use, copy, modify, merge, publish, distribute, sublicense, and/or sell copies of the Software, and to permit persons to whom the Software is furnished to do so, subject to the following conditions:
 

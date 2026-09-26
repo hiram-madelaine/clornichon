@@ -1,14 +1,14 @@
 (ns kaocha.plugin.scenari-tags
-  "`--tags \"@a and not @b\"` : le filtrage par expression de tags de Cucumber.
+  "`--tags \"@a and not @b\"`: filtering on a Cucumber tag expression.
 
-  kaocha ne sait faire que des OU (`--focus-meta`/`--skip-meta` passent leur
-  liste à un `some`), et son focus est abandonné pour tout le sous-arbre dès
-  qu'un nœud matche - une feature taguée fait donc tourner tous ses scénarios.
-  Ici l'expression est évaluée scénario par scénario, comme Cucumber l'évalue
-  pickle par pickle.
+  kaocha can only express an OR (`--focus-meta`/`--skip-meta` hand their list to
+  a `some`), and its focus is dropped for the whole subtree as soon as a node
+  matches - a tagged feature therefore runs all of its scenarios. Here the
+  expression is evaluated scenario by scenario, as Cucumber evaluates it pickle
+  by pickle.
 
-  Seules les suites scenari sont concernées : `--tags` laisse tourner une suite
-  clojure.test. Pour n'exécuter que les features, la combiner avec `--focus`."
+  Only scenari suites are concerned: `--tags` leaves a clojure.test suite
+  running. To run the features only, combine it with `--focus`."
   (:require [kaocha.output :as output]
             [kaocha.plugin :refer [defplugin]]
             [kaocha.testable :as testable])
@@ -26,9 +26,9 @@
   (.evaluate expr (mapv #(str "@" %) (:annotations testable))))
 
 (defn filter-testable
-  "Marque `::testable/skip` les scénarios dont les tags ne satisfont pas `expr`,
-  puis tout nœud scenari dont il ne reste que des enfants skippés - sans quoi le
-  reporter annonce une feature vide."
+  "Marks `::testable/skip` the scenarios whose tags do not satisfy `expr`, then
+  every scenari node left with skipped children only - otherwise the reporter
+  announces an empty feature."
   [expr testable]
   (if-let [tests (:kaocha.test-plan/tests testable)]
     (let [tests (mapv #(filter-testable expr %) tests)]
@@ -40,7 +40,7 @@
       (assoc ::testable/skip true))))
 
 (defplugin kaocha.plugin/scenari-tags
-  "Filtre les scénarios scenari sur une expression de tags cucumber."
+  "Filters the scenari scenarios on a cucumber tag expression."
 
   (cli-options [opts]
                (conj opts
@@ -53,8 +53,8 @@
             (assoc ::expression (:tags (:kaocha/cli-options config)))))
 
   (post-load [test-plan]
-    ;; ::expression est une clé de config ordinaire : `:kaocha.plugin.scenari-tags/expression`
-    ;; dans tests.edn marche aussi, ce qui la rend utilisable depuis kaocha.repl
+             ;; ::expression est une clé de config ordinaire : `:kaocha.plugin.scenari-tags/expression`
+             ;; dans tests.edn marche aussi, ce qui la rend utilisable depuis kaocha.repl
              (if-let [s (::expression test-plan)]
                (let [expr (try (TagExpressionParser/parse s)
                                (catch Exception e

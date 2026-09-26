@@ -5,79 +5,26 @@ All notable changes to this project will be documented in this file. This change
 
 ## Changed ##
 
-Un step dont la dernière forme rend `nil` ou un booléen garde l'état qu'il a
-reçu, au lieu de le propager. C'est ce que rendent une assertion (`is` rend le
-booléen de son prédicat) et un effet de bord (`doseq`, `println`) : un
-`defthen` qui oubliait son `state` final remplaçait l'état du scénario par
-`true`, sans erreur, et le step suivant recevait ce booléen. Le `state` final
-d'un step qui ne fait que vérifier devient inutile.
+The project becomes Clornichon, published as `io.github.hiram-madelaine/clornichon`
+from 0.1.0 on (instead of `io.defsquare/scenari`). The namespaces keep their
+`scenari.*` names and the kaocha type stays `:kaocha.type/scenari`: only the
+dependency coordinates change.
 
-Un step qui voudrait vraiment `nil` ou `false` comme état ne le peut plus —
-aucun n'existe dans le code, ni dans la doc.
+A step whose last form returns `nil` or a boolean keeps the state it was given,
+instead of passing that value on. That is what an assertion returns (`is`
+returns the boolean of its predicate) and what a side effect returns (`doseq`,
+`println`): a `defthen` that forgot its trailing `state` replaced the scenario
+state with `true`, without any error, and the next step received that boolean.
+The trailing `state` of a step that only checks is no longer needed.
 
-La datatable d'un step n'est plus imprimée en gris : les séparateurs `|`
-restent gris, les en-têtes de colonne passent en cyan comme les tags, et les
-cases en jaune comme les params déjà mis en valeur dans la phrase du step. Le
-padding reste calculé sur le texte brut — l'alignement des colonnes ne bouge
-pas — et `--no-color` produit la même sortie qu'avant, à l'octet près.
+A step that really wants `nil` or `false` as its state no longer can — none
+exists in the code, nor in the docs.
 
-## Added ##
-
-`--dry-run`, à travers le plugin `:kaocha.plugin/scenari-dry-run` : vérifie que
-chaque step des scénarios sélectionnés résout bien un step definition, sans
-rien exécuter. Le rapport dit où chaque step manquant est utilisé (feature >
-scénario), et la sortie est non nulle s'il en reste un — de quoi en faire une
-étape de CI.
-
-Le glue étant résolu au parse, tout est déjà dans le test-plan : il suffit de
-le parcourir. Sans ça, un step non défini n'explosait qu'à l'exécution, sur un
-`(apply nil ...)`, après les steps précédents et leurs effets de bord.
-
-Le dry run compte aussi l'inverse — les step definitions qu'aucun scénario
-sélectionné n'utilise — et `--unused-glues` les liste. Purement indicatif : un
-filtre réduit la sélection, donc grossit la liste.
-
-`--doc-html target/features.html`, through the new
-`:kaocha.plugin/scenari-doc` plugin: la documentation des scénarios en un
-document HTML — sommaire cliquable, une ancre par scénario, tags, descriptions,
-steps avec leurs datatables et docstrings.
-
-Elle est écrite depuis le test-plan, donc après `--focus`, `--focus-meta` et
-`--tags` : ce qui aurait tourné est exactement ce qui est documenté. Rien n'est
-exécuté — c'est de la doc statique, pas un rapport de run, et kaocha annonce
-donc que tous les tests ont été skippés.
-
-`--doc-report target/report.html` produit le même document, mais après
-exécution : chaque feature, scénario et step y porte son statut (pastille,
-liseré, sommaire coloré) et un step en échec affiche son message d'erreur.
-
-`--tags "@smoke and not @wip"`, the cucumber tag expression syntax, through the
-new `:kaocha.plugin/scenari-tags` kaocha plugin. The expression is parsed by
-`io.cucumber/tag-expressions` — cucumber's own — and evaluated per scenario, on
-the gherkin tags it carries, inherited `Feature` / `Rule` / `Examples` tags
-included.
-
-kaocha's `--focus-meta` / `--skip-meta` could only express an OR of tags, and
-dropped the focus for a whole subtree as soon as one node matched: a feature
-tagged `@smoke` ran all of its scenarios, tagged or not. `@a and @b`,
-parentheses and `not (...)` were out of reach. Both mechanisms still work and
-combine; `--tags` only skips scenari testables, so a clojure.test suite in the
-same run is left alone.
-
-## Fixed ##
-
-A step that throws now produces a `<failure>` in the junit-xml report and shows
-up in kaocha's end-of-run summary. Only a step failing on an `is` did before —
-one that threw left its testcase green in CI.
-
-A scenario's kaocha id is qualified by its feature
-(`:my.ns.my-feature/scenario-name` instead of `:scenario-name`). Kaocha matches
-a run's events to a testable by id equality, so two features with a same-named
-scenario used to show each other's failures; junit's `classname` was empty on
-every testcase too. `--focus <scenario-name>` still works, the bare name is kept
-as an alias.
-
-## Changed ##
+A step's datatable is no longer printed all grey: the `|` separators stay
+grey, the column headers turn cyan like the tags, and the cells yellow like the
+params already highlighted in the step's sentence. The padding is still
+computed on the raw text — the column alignment does not move — and
+`--no-color` gives the same output as before, byte for byte.
 
 A step's arguments are the captures of its cucumber expression, converted by
 their token: `{int}` gives a number, `{string}` the text without its quotes.
@@ -153,6 +100,66 @@ Breaking:
   free description text, per the spec, and lands in `:description`.
 - `<placeholders>` are substituted in steps, their arguments and the scenario
   name, not in free description text.
+
+## Added ##
+
+`--dry-run`, through the `:kaocha.plugin/scenari-dry-run` plugin: checks that
+every step of the selected scenarios resolves a step definition, without running
+anything. The report says where each missing step is used (feature >
+scenario), and the exit code is non-zero if one is left — enough to make it a CI
+step.
+
+The glue being resolved at parse time, everything is already in the test-plan:
+walking it is enough. Without this, an undefined step only blew up when run, on
+an `(apply nil ...)`, after the previous steps and their side effects.
+
+The dry run also counts the other way round — the step definitions no selected
+scenario uses — and `--unused-glues` lists them. Indicative only: a filter
+shrinks the selection, so grows the list.
+
+`--doc-html target/features.html`, through the new `:kaocha.plugin/scenari-doc`
+plugin: the documentation of the scenarios as one HTML document — a clickable
+table of contents, one anchor per scenario, tags, descriptions, steps with their
+datatables and doc strings.
+
+It is written from the test-plan, so after `--focus`, `--focus-meta` and
+`--tags`: what would have run is exactly what gets documented. Nothing is run —
+this is static documentation, not a run report, so kaocha announces that every
+test was skipped.
+
+`--doc-report target/report.html` writes the same document, but after the run:
+every feature, scenario and step carries its status (badge, border, coloured
+table of contents) and a failed step shows its error message.
+
+`--dry-run`, `--doc-html` and `--doc-report` exclude each other: the first two
+run nothing, so the one read second would see an empty selection. Combining
+them exits with an error.
+
+`--tags "@smoke and not @wip"`, the cucumber tag expression syntax, through the
+new `:kaocha.plugin/scenari-tags` kaocha plugin. The expression is parsed by
+`io.cucumber/tag-expressions` — cucumber's own — and evaluated per scenario, on
+the gherkin tags it carries, inherited `Feature` / `Rule` / `Examples` tags
+included.
+
+kaocha's `--focus-meta` / `--skip-meta` could only express an OR of tags, and
+dropped the focus for a whole subtree as soon as one node matched: a feature
+tagged `@smoke` ran all of its scenarios, tagged or not. `@a and @b`,
+parentheses and `not (...)` were out of reach. Both mechanisms still work and
+combine; `--tags` only skips scenari testables, so a clojure.test suite in the
+same run is left alone.
+
+## Fixed ##
+
+A step that throws now produces a `<failure>` in the junit-xml report and shows
+up in kaocha's end-of-run summary. Only a step failing on an `is` did before —
+one that threw left its testcase green in CI.
+
+A scenario's kaocha id is qualified by its feature
+(`:my.ns.my-feature/scenario-name` instead of `:scenario-name`). Kaocha matches
+a run's events to a testable by id equality, so two features with a same-named
+scenario used to show each other's failures; junit's `classname` was empty on
+every testcase too. `--focus <scenario-name>` still works, the bare name is kept
+as an alias.
 
 # [1.4.4] - 2019-09-18
 

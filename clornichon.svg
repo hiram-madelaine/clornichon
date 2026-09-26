@@ -1,0 +1,21 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 240 200" role="img" aria-label="Clornichon">
+  <title>Clornichon</title>
+  <!-- Clojure-blue parentheses -->
+  <g fill="none" stroke="#5881d8" stroke-width="12" stroke-linecap="round">
+    <path d="M58 22 Q18 80 58 138"/>
+    <path d="M182 22 Q222 80 182 138"/>
+  </g>
+  <!-- the gherkin -->
+  <g transform="rotate(-35 120 80)">
+    <rect x="62" y="56" width="116" height="48" rx="24" fill="#63b132" stroke="#3f7a1c" stroke-width="4"/>
+    <path d="M78 70 Q120 62 160 70" fill="none" stroke="#8fd05e" stroke-width="5" stroke-linecap="round"/>
+    <g fill="#3f7a1c">
+      <circle cx="88" cy="86" r="3.5"/>
+      <circle cx="108" cy="92" r="3.5"/>
+      <circle cx="128" cy="84" r="3.5"/>
+      <circle cx="148" cy="93" r="3.5"/>
+      <circle cx="162" cy="82" r="3.5"/>
+    </g>
+  </g>
+  <text x="120" y="188" text-anchor="middle" font-family="Helvetica, Arial, sans-serif" font-size="30" font-weight="bold" fill="#3f7a1c"><tspan fill="#5881d8">clo</tspan>rnichon</text>
+</svg>

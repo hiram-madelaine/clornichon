@@ -4,7 +4,7 @@
     [deps-deploy.deps-deploy :as dd]
     [scenari.meta :refer [version tag]]))
 
-(def lib-name 'io.defsquare/scenari)
+(def lib-name 'io.github.hiram-madelaine/clornichon)
 (def jar-content "target/classes")
 (def basis (b/create-basis {:project "deps.edn"}))
 (def jar-file (format "target/%s-%s.jar" (name lib-name) version))
@@ -24,9 +24,9 @@
                 :version   version
                 :basis     basis
                 :src-dirs  ["src"]
-                :scm       {:connection          "scm:git:git://github.com:defsquare/scenari.git"
-                            :developerConnection "scm:git:ssh://github.com:defsquare/scenari.git"
-                            :url                 "https://github.com/defsquare/scenari"
+                :scm       {:connection          "scm:git:git://github.com:hiram-madelaine/clornichon.git"
+                            :developerConnection "scm:git:ssh://github.com:hiram-madelaine/clornichon.git"
+                            :url                 "https://github.com/hiram-madelaine/clornichon"
                             :tag                 tag}})
   (println "Build jar...")
   (b/jar {:class-dir jar-content

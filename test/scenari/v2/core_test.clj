@@ -308,6 +308,10 @@
         (is (string/includes? html (str "id=\"" a "\"")))
         (is (string/includes? html (str "href=\"#" a "\"")))))
 
+    (t/testing "deux ids distincts gardent deux ancres distinctes : aplatir la
+    ponctuation confondait la feature `:ns/f-s` et le scénario `s` de `:ns/f`"
+      (is (not= (#'sdoc/anchor :ns/f-s) (#'sdoc/anchor :ns.f/s))))
+
     (t/testing "les steps et leurs blocs sont rendus, le HTML est échappé"
       (is (string/includes? html "<span class=\"kw\">Then</span>"))
       (is (string/includes? (sdoc/document (sdoc/selected-features {:kaocha.test-plan/tests [suite]}))
@@ -340,7 +344,14 @@
             html   (sdoc/document (sdoc/selected-features result))]
         (is (string/includes? html "<span class=\"badge fail\">fail</span>"))
         (is (string/includes? html "<li class=\"step pending\">"))
-        (is (string/includes? html "<pre class=\"error\">boom</pre>"))))))
+        (is (string/includes? html "<pre class=\"error\">boom</pre>")))))
+
+  (t/testing "--doc-html et --doc-report ensemble sont refusés : --doc-html
+  skippe tout, le rapport serait vide"
+    (is (thrown? Exception (sdoc/scenari-doc-pre-load-hook
+                            {::sdoc/target-file "a.html" ::sdoc/report-file "b.html"})))
+    (is (= {::sdoc/report-file "b.html"}
+           (sdoc/scenari-doc-pre-load-hook {::sdoc/report-file "b.html"})))))
 
 (t/deftest scenari-dry-run-test
   (let [suite (testable/-load {::testable/type                 :kaocha.type/scenari
@@ -372,7 +383,15 @@
       (let [g (first (filter #(= "a number {int}" (:step %)) (glue/all-glues)))]
         (is (some? g))
         (is (some #{g} (sdry/unused-glues [])))
-        (is (not (some #{g} (sdry/unused-glues [{:glue {:ref (:ref g)}}]))))))))
+        (is (not (some #{g} (sdry/unused-glues [{:glue {:ref (:ref g)}}])))))))
+
+  (t/testing "--dry-run avec --doc-html est refusé : la doc skippe les suites, et
+  le dry run passait sans avoir rien vérifié"
+    (is (thrown? Exception (sdry/scenari-dry-run-pre-load-hook
+                            {::sdry/enabled? true ::sdoc/target-file "a.html"})))
+    (is (thrown? Exception (sdry/scenari-dry-run-pre-load-hook
+                            {::sdry/enabled? true ::sdoc/report-file "a.html"})))
+    (is (= {::sdry/enabled? true} (sdry/scenari-dry-run-pre-load-hook {::sdry/enabled? true})))))
 
 (t/deftest alternation-var-name-test
   (t/testing "l'alternance met une barre oblique dans le nom du var, ce qui en
