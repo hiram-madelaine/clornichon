@@ -46,7 +46,7 @@ Règles :
 | R9 | Release 0.1.11 (12, 13, 14, 21)                             | 5   | —         | TODO | |
 | 15 | Ordre du fichier dans la doc HTML, fin de `Rule` en console | 5   | important | FAIT | PR 4 |
 | 16 | Retirer `deffeature` sur un répertoire, et commons-io       | 5   | modéré    | FAIT | PR 5 |
-| 17 | Type hints sur le chemin de matching                        | 5   | modéré    | TODO | 765 ms → 105 ms au chargement, banc synthétique |
+| 17 | Type hints sur le chemin de matching                        | 5   | modéré    | FAIT | PR 5 ; banc : 1 156 ms → 94 ms ; mesure Electre à l'agent dédié |
 | 18 | Hooks globaux ignorés sans rien dire                        | 5   | modéré    | TODO | |
 | 19 | Code mort, features d'exemple hors du jar                   | 5   | ménage    | TODO | |
 | 20 | `doc/development-workflow.md` à jour                        | 5   | mineur    | TODO | |
@@ -244,6 +244,11 @@ si l'ordre est inversé, la feature ne requérant pas son glue. Vérifié sur le
 jetable avec le `tests.edn` de la doc.
 
 ### R9. Release 0.1.11
+À décider : `master` porte déjà 15, et portera 16 et 17 une fois la PR 5 fusionnée. Une
+release faite maintenant les embarque, quoi que dise la colonne « Release » du tableau
+des PR. Le plus simple est une seule release avec tout ce qui est fusionné, et une
+0.1.12 pour le reste.
+
 Après 12, 13, 14 et 21. S'arrêter à la publication Clojars et à la mise à jour de ce plan :
 le bump côté Electre revient à l'agent dédié.
 
@@ -328,6 +333,21 @@ avertissements sont payés une fois par step ou par feature : ne les traiter que
 mesure le justifie.
 Tests : ceux de `glue_test.clj` suffisent. Mesurer avant et après, sur le banc et sur
 Electre si l'agent dédié peut. CHANGELOG : `Changed`.
+
+Fait. Le hint est sur un local : posé sur la forme `(or ...)`, le compilateur l'ignore,
+l'avertissement reste et la mesure ne bouge pas. `glue.clj` passe de 15 à 13
+avertissements, les deux de `match`.
+
+Banc synthétique, médiane de 5 passes après 3 de chauffe, même machine :
+
+| Mesure                                      | Avant    | Après  |
+|---------------------------------------------|----------|--------|
+| 3 400 steps contre 440 glues                | 1 156 ms | 94 ms  |
+| `->feature-ast`, 500 scénarios de 7 steps   | 1 248 ms | 125 ms |
+
+L'audit donnait 765 ms avant : autre méthode, une seule passe. Reste la mesure sur
+Electre, qui revient à l'agent dédié ; le gain y porte sur le chargement, pas sur les
+~91 s du run.
 
 ### 18. Hooks globaux ignorés sans rien dire — modéré
 

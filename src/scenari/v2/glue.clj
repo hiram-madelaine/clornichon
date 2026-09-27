@@ -1,14 +1,14 @@
 (ns scenari.v2.glue
   (:require [clojure.test :as t]
             [clojure.string :as string])
-  (:import (io.cucumber.cucumberexpressions CaptureGroupTransformer ExpressionFactory ParameterType ParameterTypeRegistry Transformer)
+  (:import (io.cucumber.cucumberexpressions CaptureGroupTransformer Expression ExpressionFactory ParameterType ParameterTypeRegistry Transformer)
            (java.util.regex Pattern)
            (java.lang.reflect Type)
            (java.util Locale)))
 
 (def ^:private glues-cache (atom nil))
 
-(def ^:private no-types
+(def ^:private ^"[Ljava.lang.reflect.Type;" no-types
   "Le second argument de `.match` déclare les types attendus par la fonction
   glue. Une fn Clojure ne déclare rien, la conversion reste celle du token."
   (into-array Type []))
@@ -132,8 +132,12 @@
 (defn- match
   "Les arguments capturés par le glue sur cette phrase, nil s'il ne matche pas.
   Une liste vide est un match sans paramètre - à ne pas confondre avec nil."
-  [glue sentence]
-  (.orElse (.match (or (:expression glue) (step->expression glue)) sentence no-types) nil))
+  [glue ^String sentence]
+  ;; les hints : appelé pour chaque couple (step, glue) au chargement, l'appel
+  ;; par réflexion y coûtait l'essentiel du temps. Sur un local : le
+  ;; compilateur ignore un hint posé sur la forme `or`
+  (let [^Expression expression (or (:expression glue) (step->expression glue))]
+    (.orElse (.match expression sentence no-types) nil)))
 
 (defn step-args
   "Les valeurs que la phrase donne au glue, converties par leur token : {int}

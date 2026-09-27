@@ -41,6 +41,13 @@ used to replace the cause.
 
 ## Changed ##
 
+Loading a large suite is faster: matching a step against a glue no longer goes
+through reflection. It is done for every step and every glue, when the
+features are parsed. On a synthetic bench of 3,400 steps against 440 glues the
+matching goes from 1,156 ms to 94 ms, and parsing a feature of 500 scenarios
+from 1,248 ms to 125 ms.
+
+
 `commons-io` is no longer a dependency: it only served to list the features of
 a directory, which never worked. A project that used it through Clornichon must
 now declare it itself. The 2.6 that was pulled in is the target of
