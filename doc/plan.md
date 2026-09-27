@@ -28,7 +28,7 @@ Règles :
 | R1 | Release 0.1.3                                     | 1   | les deux   | FAIT | publiée sur Clojars, tag `v0.1.3` |
 | 4  | Durées step/scénario + rapport « slowest steps »  | 2   | Electre    | FAIT | 0 surcoût mesurable sur Electre ; 1 glue = ~28 % de la suite |
 | R2 | Release 0.1.4 (`--slowest-steps`)                 | 2   | les deux   | FAIT | publiée sur Clojars, tag `v0.1.4` |
-| E1 | Electre passe de scenari `2396ada` à clornichon 0.1.5 | 2 | Electre  | EN COURS | branche `chore/migration-clornichon-0.1.4` poussée (e8072f8ac2, 0.1.5) ; MR + CI à faire |
+| E1 | Electre passe de scenari `2396ada` à clornichon | 2 | Electre  | EN COURS | suivi par un agent dédié au repo Electre (MR, CI, bumps) |
 | 5  | Hooks reçoivent le scénario + hooks par tag       | 2   | Electre    | FAIT | arité 0 prioritaire (compat Electre) ; 392/392 verts |
 | R3 | Release 0.1.5 (hooks)                             | 2   | les deux   | FAIT | publiée sur Clojars, tag `v0.1.5` |
 | 6  | Sortie cucumber-messages (NDJSON)                 | 3   | communauté | TODO |       |
