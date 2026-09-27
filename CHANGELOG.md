@@ -3,6 +3,15 @@ All notable changes to this project will be documented in this file. This change
 
 # [Unreleased] #
 
+## Added ##
+
+`:kaocha.plugin/scenari-messages` adds `--cucumber-messages FILE`: the run
+written as a cucumber-messages NDJSON stream, which Cucumber's formatters (HTML,
+JUnit XML, JSON) read. Scenarios and steps now carry the gherkin pickle ids as
+`:id`, and `:started-at` timestamps; a feature keeps the parser's envelopes
+under `:messages`. `->feature-ast` takes an optional `uri`, which `deffeature`
+sets to the feature file.
+
 # [0.1.6] - 2026-09-27 #
 
 ## Added ##

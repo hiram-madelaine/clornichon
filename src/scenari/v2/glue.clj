@@ -141,6 +141,22 @@
   [glue sentence]
   (mapv #(.getValue %) (match glue sentence)))
 
+(defn- group->data
+  "Un groupe qui n'a pas participé au match n'a ni valeur ni position (-1)."
+  [group]
+  (cond-> {:children (mapv group->data (.orElse (.getChildren group) []))}
+    (.getValue group) (assoc :start (.getStart group) :value (.getValue group))))
+
+(defn step-match-arguments
+  "Ce que le glue capture sur la phrase, à la forme `StepMatchArgument` des
+  cucumber-messages : le groupe - position, valeur, sous-groupes - et le nom du
+  token, absent pour un groupe de regex."
+  [glue sentence]
+  (for [arg (match glue sentence)
+        :let [type-name (.getName (.getParameterType arg))]]
+    (cond-> {:group (group->data (.getGroup arg))}
+      (seq type-name) (assoc :parameterTypeName type-name))))
+
 (defn find-glue-by-step-regex
   "Return the tuple of fn/regex as a vector that match the step-sentence"
   ([step ns-feature] (find-glue-by-step-regex step ns-feature (all-glues)))

@@ -13,6 +13,7 @@ A feature is represented as a map with the following keys:
  :annotations #{...}    ; Optional annotations (tags)
  :pre-run [...]         ; Hooks to execute before the feature
  :post-run [...]        ; Hooks to execute after the feature
+ :messages [...]        ; The parser's Source, GherkinDocument and Pickle envelopes, for cucumber-messages
  :status :success/:fail ; Status after execution
 }
 ```
@@ -36,7 +37,7 @@ Annotations (tags) are stored as a set of strings:
 Each scenario is represented as a map within the `:scenarios` vector:
 
 ```clojure
-{:id "uuid-string"           ; Unique identifier
+{:id "uuid-string"           ; The pickle's id
  :scenario-name "Name"       ; The scenario title
  :annotations #{...}         ; Optional annotations (tags) of the scenario
  :steps [...]                ; Vector of step maps
@@ -44,6 +45,8 @@ Each scenario is represented as a map within the `:scenarios` vector:
  :post-run [...]             ; Hooks to run after the scenario
  :default-state {}           ; Initial state for the scenario
  :status :success/:fail/:pending ; Execution status
+ :started-at 1790511573279   ; Epoch millis, once run
+ :finished-at 1790511573301
 }
 ```
 
@@ -52,7 +55,8 @@ Each scenario is represented as a map within the `:scenarios` vector:
 Each step within a scenario is represented as a map:
 
 ```clojure
-{:sentence-keyword :given/:when/:then/:and  ; Step type
+{:id "uuid-string"                          ; The pickle step's id
+ :sentence-keyword :given/:when/:then/:and  ; Step type
  :sentence "Step text"                      ; The actual step text
  :raw "Given Step text"                     ; Full text with keyword
  :order 0                                   ; Position in scenario
@@ -62,6 +66,7 @@ Each step within a scenario is represented as a map:
  :input-state {}                            ; State before execution
  :output-state {}                           ; State after execution
  :exception {...}                           ; If step failed
+ :started-at 1790511573279                  ; Epoch millis, once run
  :duration-ns 1234567                       ; Time the glue took, once run
 }
 ```

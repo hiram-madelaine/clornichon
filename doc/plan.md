@@ -28,12 +28,12 @@ Règles :
 | R1 | Release 0.1.3                                     | 1   | les deux   | FAIT | publiée sur Clojars, tag `v0.1.3` |
 | 4  | Durées step/scénario + rapport « slowest steps »  | 2   | Electre    | FAIT | 0 surcoût mesurable sur Electre ; 1 glue = ~28 % de la suite |
 | R2 | Release 0.1.4 (`--slowest-steps`)                 | 2   | les deux   | FAIT | publiée sur Clojars, tag `v0.1.4` |
-| E1 | Electre passe de scenari `2396ada` à clornichon 0.1.5 | 2 | Electre  | EN COURS | branche `chore/migration-clornichon-0.1.4` poussée (e8072f8ac2, 0.1.5) ; MR + CI à faire |
+| E1 | Electre passe de scenari `2396ada` à clornichon | 2 | Electre  | EN COURS | suivi par un agent dédié au repo Electre (MR, CI, bumps) |
 | 5  | Hooks reçoivent le scénario + hooks par tag       | 2   | Electre    | FAIT | arité 0 prioritaire (compat Electre) ; 392/392 verts |
 | R3 | Release 0.1.5 (hooks)                             | 2   | les deux   | FAIT | publiée sur Clojars, tag `v0.1.5` |
-| 6  | Sortie cucumber-messages (NDJSON)                 | 3   | communauté | TODO |       |
+| 6  | Sortie cucumber-messages (NDJSON)                 | 3   | communauté | FAIT | `--cucumber-messages FILE` ; validé par `@cucumber/html-formatter` |
 | 7  | Types de paramètres custom publics                | 3   | communauté | FAIT | `define-parameter-type!` |
-| R4 | Release 0.1.6 (types de paramètres custom)        | 3   | communauté | EN COURS | préparée, reste `./release.sh patch` |
+| R4 | Release 0.1.6 (types de paramètres custom)        | 3   | communauté | FAIT | publiée sur Clojars, tag `v0.1.6` |
 | 8  | Namespace `clornichon.*` (alias)                  | 3   | communauté | TODO | décision à prendre |
 
 ## Détail des items
@@ -112,6 +112,13 @@ Non fait (YAGNI) : `:status` au niveau feature, hooks par step, before-all/after
 ### 6. cucumber-messages
 Plugin qui émet des `Envelope` NDJSON (le parser en produit déjà) + mapping des
 résultats de run. Plus gros chantier : à détailler quand il passe `EN COURS`.
+
+Fait : `kaocha.plugin.scenari-messages`. Le début du flux (source, GherkinDocument,
+pickles) est gardé tel que le parser l'émet ; le reste est reconstruit après le run.
+Pas de dépendance JSON ajoutée : un petit writer suffit, les messages Java sont lus
+par leurs getters. UNDEFINED se déduit du glue absent, sans nouveau statut. Validé
+en rendant le flux avec `@cucumber/html-formatter` : statuts, arguments surlignés,
+outline et datatable s'affichent, console sans erreur.
 
 ### 7. Types de paramètres custom
 Exposer une fonction publique sur le `ParameterTypeRegistry` de `glue.clj` + doc dans
