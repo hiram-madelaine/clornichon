@@ -35,7 +35,7 @@ Règles :
 | 10 | API de datatable                                  | 4   | communauté | FAIT | `scenari.v2.table` ; `diff` reporté |
 | 11 | Niveau `Rule` dans le rapport et l'arbre kaocha   | 4   | communauté | EN COURS | codé, 66 tests verts ; reste la mesure Electre |
 | R7 | Release 0.1.9 (niveau `Rule`)                     | 4   | communauté | FAIT | publiée sur Clojars, tag `v0.1.9` |
-| R8 | Release 0.1.10 (datatables, hooks globaux)        | 4   | les deux   | EN COURS | préparée, reste `./release.sh patch` |
+| R8 | Release 0.1.10 (datatables, hooks globaux)        | 4   | les deux   | FAIT | publiée sur Clojars, tag `v0.1.10` ; CHANGELOG daté et docs en 0.1.10 après le tag |
 
 Ordre proposé : 11 (le plus petit, rien ne change dans l'API), 10, puis 9 (le seul qui
 touche Electre).
