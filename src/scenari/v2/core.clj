@@ -302,23 +302,80 @@
       (f ctx)
       (f))))
 
+(def hook-keys
+  "Les valeurs de `:scenari/hook` : ce qu'un hook global encadre."
+  #{:before-all :after-all :before-feature :after-feature :before-scenario :after-scenario})
+
+(defn global-hooks
+  "Les vars marquées `:scenari/hook` dans les namespaces chargés, par clé de
+  `hook-keys`, dans l'ordre des namespaces puis des lignes. Cherchées à
+  l'exécution et pas au parsing : un namespace de hooks que personne ne requiert
+  peut se charger après les features."
+  []
+  (->> (all-ns)
+       (mapcat #(vals (ns-publics %)))
+       (filter #(:scenari/hook (meta %)))
+       (sort-by (juxt #(str (:ns (meta %))) #(:line (meta %) 0)))
+       (reduce (fn [m v]
+                 (let [h (:scenari/hook (meta v))]
+                   ;; une faute de frappe ferait un hook qui ne tourne jamais, sans rien dire
+                   (when-not (hook-keys h)
+                     (throw (ex-info (str "hook " v " : :scenari/hook " h " is not one of " (sort hook-keys))
+                                     {:hook v :scenari/hook h})))
+                   (update m h (fnil conj []) (->hook v))))
+               {})))
+
+(def ^:dynamic *global-hooks*
+  "Les hooks globaux d'un run, cherchés une fois à son entrée - `run-suite`,
+  `run-features` - plutôt qu'à chaque scénario : le balayage parcourt toutes les
+  vars chargées. Sans run englobant, chaque appel les cherche, ce qui voit aussi
+  un hook ajouté au REPL entre deux appels."
+  nil)
+
+(defn with-global-hooks
+  "Appelle f avec les hooks globaux résolus pour toute sa durée."
+  [f]
+  (binding [*global-hooks* (or *global-hooks* (global-hooks))]
+    (f)))
+
+(defn- around
+  "Encadre f par pre-run et post-run. Le teardown est dans un finally : il doit
+  tourner meme si un hook pre-run, la resolution d'un glue ou un report leve -
+  c'est exactement le cas pour lequel il existe."
+  [pre-run post-run ctx f ->status]
+  (let [status (volatile! (when ->status :fail))]
+    (try (run! #(call-hook % ctx) pre-run)
+         (let [r (f)]
+           (when ->status (vreset! status (->status r)))
+           r)
+         (finally (run! #(call-hook % (cond-> ctx @status (assoc :status @status))) post-run)))))
+
 (defn run-hooks
-  "Encadre f par les hooks :pre-run et :post-run de x. Le teardown est dans un
-  finally : il doit tourner meme si un hook pre-run, la resolution d'un glue ou
-  un report leve - c'est exactement le cas pour lequel il existe.
+  "Encadre f par les hooks :pre-run et :post-run de x - un scénario s'il a un
+  :scenario-name, une feature sinon - et par les hooks globaux de ce niveau, en
+  oignon : les globaux entrent avant ceux de x et sortent après eux.
 
   Un hook à un argument reçoit le nom et les tags de x ; avec ->status, qui tire
   :success ou :fail du retour de f, les :post-run reçoivent aussi :status -
   :fail si f a levé."
   ([x f] (run-hooks x f nil))
   ([{:keys [pre-run post-run] :as x} f ->status]
-   (let [ctx    (select-keys x [:feature :scenario-name :annotations])
-         status (volatile! (when ->status :fail))]
-     (try (run! #(call-hook % ctx) pre-run)
-          (let [r (f)]
-            (when ->status (vreset! status (->status r)))
-            r)
-          (finally (run! #(call-hook % (cond-> ctx @status (assoc :status @status))) post-run))))))
+   (let [[before after] (if (contains? x :scenario-name)
+                          [:before-scenario :after-scenario]
+                          [:before-feature :after-feature])
+         hooks          (or *global-hooks* (global-hooks))]
+     (around (into (get hooks before []) pre-run)
+             (into (vec post-run) (get hooks after))
+             (select-keys x [:feature :scenario-name :annotations])
+             f
+             ->status))))
+
+(defn run-suite
+  "Encadre f - toute la suite - par les hooks globaux :before-all et :after-all,
+  appelés sans tags : un hook à un argument reçoit une map vide."
+  [f]
+  (with-global-hooks
+    #(around (:before-all *global-hooks*) (:after-all *global-hooks*) {} f nil)))
 
 (defn- steps-status [steps]
   (if (some #(= :fail (:status %)) steps) :fail :success))
@@ -350,7 +407,7 @@
 
 (defn run-features
   ([] (apply run-features (filter #(some? (:scenari/feature-ast (meta %))) (vals (ns-interns *ns*)))))
-  ([& features] (mapv run-feature features)))
+  ([& features] (with-global-hooks #(mapv run-feature features))))
 
 ;; ------------------------
 ;;          DEFINE

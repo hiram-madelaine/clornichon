@@ -5,6 +5,12 @@ All notable changes to this project will be documented in this file. This change
 
 ## Added ##
 
+Global hooks: a var marked `^{:scenari/hook :before-scenario}` (or
+`:after-scenario`, `:before-feature`, `:after-feature`) in any loaded namespace
+runs for every feature, around the hooks of each `deffeature`. `:before-all` and
+`:after-all` run once around the Kaocha suite. `:scenari/tags` and the
+one-argument context work as for the other hooks. See `doc/state-and-hooks.md`.
+
 `scenari.v2.table` reads a datatable other ways than the vector of maps a step
 receives: `as-list` (one column or one row), `as-map` (a key/value table),
 `transpose` (headers in the first column) and `cells` (rows as written). The

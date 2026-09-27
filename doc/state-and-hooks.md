@@ -82,3 +82,29 @@ Put a [cucumber tag expression](https://github.com/cucumber/tag-expressions) in 
 ```
 
 The expression is parsed when the feature is loaded: an invalid one fails there, naming the hook.
+
+## Global hooks
+
+A hook every feature needs -- clean the database before each scenario, start the system once -- does not have to be repeated in each `deffeature`. Mark the var with `:scenari/hook`, in any loaded namespace, and it runs for every feature:
+
+```clojure
+(defn ^{:scenari/hook :before-all} start-system! [] (start!))
+(defn ^{:scenari/hook :after-all} stop-system! [] (stop!))
+
+(defn ^{:scenari/hook :before-scenario :scenari/tags "@db"} clean-db! []
+  (truncate-tables!))
+```
+
+| `:scenari/hook`                        | Runs                                    |
+|----------------------------------------|-----------------------------------------|
+| `:before-all`, `:after-all`            | once around the whole suite, Kaocha only |
+| `:before-feature`, `:after-feature`    | around each feature                     |
+| `:before-scenario`, `:after-scenario`  | around each scenario                    |
+
+They follow the rules of the hooks above: a one-argument hook receives the name and the tags of what it wraps (a `:before-all` / `:after-all` gets an empty map), `:scenari/tags` restricts where it runs, and the `after` ones run even when a step or a `before` hook throws. A misspelled `:scenari/hook` value throws when the hooks are looked up, naming the hook.
+
+**Order.** Global hooks wrap those of the `deffeature`, like an onion: a global `:before-scenario` runs before the feature's `:pre-scenario-run`, a global `:after-scenario` after its `:post-scenario-run`. Between global hooks of one kind, the order is that of their namespaces' names, then of their lines.
+
+**When they are looked up.** Once at the start of a run, among the loaded namespaces -- not when the features are parsed, so a namespace of hooks that no feature requires is still found, as long as it is loaded (a namespace under the Kaocha `glue-paths` is). Under the `clojure.test` runner alone, each feature is its own `deftest` and looks them up again.
+
+**Suite hooks and Kaocha.** `:before-all` and `:after-all` run around the `:kaocha.type/scenari` suite, and not with `--dry-run` or `--doc-html`, which run nothing. A `:before-all` that throws stops the run, like a failing `(use-fixtures :once ...)`: no scenario runs, the exception is printed and the exit code is non-zero, and the `:after-all` hooks still run. The `clojure.test` runner has no suite: use `(use-fixtures :once ...)` there.

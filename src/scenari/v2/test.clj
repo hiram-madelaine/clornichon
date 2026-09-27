@@ -3,7 +3,7 @@
             [clojure.string :as string]
             [clojure.test :as t]
             [scenari.v2.step :refer [generate-step-fn]]
-            [scenari.v2.core :refer [run-step run-hooks]]
+            [scenari.v2.core :refer [run-step run-hooks with-global-hooks]]
             [scenari.v2.table :as table]
             [scenari.utils :as utils]))
 
@@ -209,5 +209,6 @@
 (defn run-features
   ([] (apply run-features (filter #(some? (:scenari/feature-ast (meta %))) (vals (ns-interns *ns*)))))
   ([& features]
-   (doseq [feature features]
-     (run-feature feature))))
+   (with-global-hooks
+     #(doseq [feature features]
+        (run-feature feature)))))
