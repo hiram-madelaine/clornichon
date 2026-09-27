@@ -3,6 +3,8 @@ All notable changes to this project will be documented in this file. This change
 
 # [Unreleased] #
 
+# [0.1.7] - 2026-09-27 #
+
 ## Added ##
 
 `:kaocha.plugin/scenari-messages` adds `--cucumber-messages FILE`: the run
