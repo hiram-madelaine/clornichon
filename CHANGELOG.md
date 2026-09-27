@@ -3,6 +3,16 @@ All notable changes to this project will be documented in this file. This change
 
 # [Unreleased] #
 
+## Changed ##
+
+A step whose sentence matches no glue fails with `Undefined step: <sentence>`
+and the skeleton to paste, instead of the `NullPointerException` that
+`(apply nil ...)` raised. Its status stays `:fail`.
+
+`org.clojure/tools.logging` and `clojure.java-time` are no longer dependencies:
+nothing in the library required them. A project that used them through
+Clornichon must now declare them itself.
+
 # [0.1.2] - 2026-09-27 #
 
 ## Changed ##

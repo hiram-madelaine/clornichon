@@ -1,5 +1,6 @@
 (ns scenari.v2.feature-test
-  (:require [clojure.test :as t :refer [deftest testing is]]
+  (:require [clojure.string :as string]
+            [clojure.test :as t :refer [deftest testing is]]
             [scenari.v2.core :as v2]
             [scenari.v2.test :as sc-test]
             [kaocha.type.scenari]
@@ -145,6 +146,17 @@ Feature: mixed tags
         (testable/-run scenario {}))
       (is (= 1 (count (filter #(and (= :fail (:type %)) (instance? Throwable (:actual %)))
                               @events)))))))
+
+(deftest undefined-step-names-the-step-test
+  (testing "a step without glue fails with its sentence and a skeleton, not the
+  NPE `(apply nil ...)` used to raise"
+    (let [step (binding [t/report (constantly nil)] ; le :missing-step du parsing
+                 (-> (v2/->feature-ast "Feature: f\n  Scenario: s\n    When nobody wrote this step" {} *ns*)
+                     :scenarios first v2/run-scenario :steps first))
+          msg  (ex-message (:exception step))]
+      (is (= :fail (:status step)))
+      (is (string/includes? msg "Undefined step: When nobody wrote this step"))
+      (is (string/includes? msg "(defwhen \"nobody wrote this step\"")))))
 
 (v2/defthen "the assertion is the last form" [state] (is (= {:foo 1} state)))
 (v2/defthen "the side effect is the last form" [state] (run! identity [1 2]))
