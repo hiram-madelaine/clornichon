@@ -4,8 +4,6 @@
              "clojars" {:url "https://repo.clojars.org/"}}
 
  :deps      {org.clojure/clojure                 {:mvn/version "1.10.2"}
-             org.clojure/tools.logging           {:mvn/version "0.4.1"}
-             clojure.java-time/clojure.java-time {:mvn/version "0.3.2"}
              io.cucumber/gherkin                 {:mvn/version "32.1.1"}
              io.cucumber/cucumber-expressions    {:mvn/version "20.1.0"}
              ;; 6.1.2 est la dernière version sans dépendance transitive : les

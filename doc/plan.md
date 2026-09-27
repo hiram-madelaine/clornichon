@@ -23,7 +23,7 @@ Règles :
 | #  | Item                                              | Lot | Cible      | État | Notes |
 |----|---------------------------------------------------|-----|------------|------|-------|
 | 1  | Step non résolu → message clair, pas NPE          | 1   | les deux   | FAIT | statut `:fail` gardé ; `:undefined` distinct avec #6 |
-| 2  | Retirer les dépendances inutilisées               | 1   | communauté | TODO |       |
+| 2  | Retirer les dépendances inutilisées               | 1   | communauté | FAIT | `tools.namespace` gardé : utilisé |
 | 3  | CI GitHub Actions                                 | 1   | communauté | TODO |       |
 | R1 | Release 0.1.3                                     | 1   | les deux   | TODO | après 1–3 |
 | 4  | Durées step/scénario + rapport « slowest steps »  | 2   | Electre    | TODO |       |
@@ -40,11 +40,10 @@ Il lève maintenant `Undefined step: <phrase>` + le skeleton (`generate-step-fn`
 `:fail` : aucun consommateur (reporter, kaocha, `--doc-html`) n'a eu à changer.
 Test : `undefined-step-names-the-step-test` dans `test/scenari/v2/feature_test.clj`.
 
-### 2. Dépendances inutilisées
-`deps.edn` déclare `tools.logging`, `clojure.java-time`, `tools.namespace` : rien dans
-`src/` ne les requiert. Les retirer (et du pom de référence). Kaocha reste (les plugins
-en dépendent).
-Vérif : `clojure -Spath -A:test` sans ces libs ; `./test.sh` vert.
+### 2. Dépendances inutilisées — FAIT
+`tools.logging` et `clojure.java-time` retirés de `deps.edn` (le pom est généré depuis la
+basis par `script/build.clj`). `org.clojure/tools.namespace` reste : `kaocha/type/scenari.clj`
+le requiert, et kaocha tire un fork (`lambdaisland/tools.namespace`), pas celui-ci.
 
 ### 3. CI
 `.github/workflows/test.yml` : checkout, setup Java + Clojure CLI, `./test.sh`, sur push/PR.
