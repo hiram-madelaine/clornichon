@@ -3,6 +3,6 @@
 
 (def module-name "clornichon")
 (def path ".")
-(def version "0.1.5")
-(def tag "v0.1.5")
-(def generated-at "2026-09-27T11:55:16Z")
+(def version "0.1.6")
+(def tag "v0.1.6")
+(def generated-at "2026-09-27T12:12:39Z")
