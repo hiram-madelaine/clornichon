@@ -49,7 +49,7 @@ Règles :
 | 17 | Type hints sur le chemin de matching                        | 5   | modéré    | FAIT | PR 5 ; banc : 1 156 ms → 94 ms ; mesure Electre à l'agent dédié |
 | 18 | Hooks globaux ignorés sans rien dire                        | 5   | modéré    | FAIT | PR 6 ; un hook privé tourne |
 | 19 | Code mort, features d'exemple hors du jar                   | 5   | ménage    | FAIT | PR 6 ; 4 features supprimées, 2 sous `test/features/` |
-| 20 | `doc/development-workflow.md` à jour                        | 5   | mineur    | TODO | |
+| 20 | `doc/development-workflow.md` à jour                        | 5   | mineur    | FAIT | PR 6 |
 | 21 | `--fail-fast` fait tomber le run au premier step en échec   | 5   | important | FAIT | PR 3 ; traité avant R9, part donc en 0.1.11 |
 | 22 | Un `is` qui échoue dans un hook laisse le run vert          | 5   | modéré    | FAIT | PR 6 ; trouvé en traitant 21 ; dans `call-hook`, `:error` compris |
 | 23 | Un `is` dont la forme lève dans un step laisse le run vert  | 5   | modéré    | TODO | trouvé en traitant 22 ; hors R10 tant que non décidé |
@@ -419,6 +419,12 @@ Electre n'appelle rien de `scenari.utils`.
 - les hooks globaux n'y figurent pas : renvoyer à `doc/state-and-hooks.md#global-hooks` ;
 - la procédure de release n'est décrite nulle part ailleurs que dans l'en-tête de
   `release.sh` : « Prepare », essai à blanc, release.
+
+Fait. La release a sa section, « Releasing Clornichon » : les deux sorties de l'essai
+à blanc y sont celles du script, rejoué sans identifiants, docs prêtes puis non.
+Corrigé en plus : « The state passed between steps can be examined in the test
+output » — rien n'affiche l'état ; la phrase renvoie à `run-feature` comme donnée.
+Pas d'entrée au CHANGELOG : la doc seule change.
 
 ### 21. `--fail-fast` fait tomber le run au premier step en échec — important
 

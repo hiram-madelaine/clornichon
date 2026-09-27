@@ -159,12 +159,10 @@ Step definitions (also called "glue code") connect the Gherkin steps with actual
   (update state :cart conj {:title book-title :type :book}))
 
 (defthen "my cart should contain {number} item" [state item-count]
-  (is (= item-count (count (:cart state))))
-  state)
+  (is (= item-count (count (:cart state)))))
 
 (defthen "the item should be {string} book" [state book-title]
-  (is (= book-title (-> state :cart first :title)))
-  state)
+  (is (= book-title (-> state :cart first :title))))
 ```
 
 ### Parameter Handling
@@ -203,7 +201,9 @@ A glue defined with a `#"..."` literal stays a plain regex whatever it contains 
 
 ### State Passing Between Steps
 
-Each step function receives the state from the previous step and must return the (possibly modified) state for the next step. This allows for data to flow through your scenario.
+Each step function receives the state from the previous step, and what it returns is the state of the next one. This allows for data to flow through your scenario.
+
+A step whose last form returns `nil`, `true` or `false` -- an assertion, a `doseq`, a `println` -- keeps the state it was given: a `defthen` that only asserts needs no trailing `state`, as above. See [State and hooks](state-and-hooks.md#chaining-steps).
 
 ### Best Practices for Step Definitions
 
@@ -244,13 +244,13 @@ The step matching process is a key part of Clornichon:
 
 ### Running Tests
 
-The simplest way to execute Clornichon tests is through the standard Clojure test runner:
+A `deffeature` is a `deftest`: `clojure.test/run-tests`, your editor's test runner or any clojure.test runner picks it up.
 
-```bash
-clojure -M:test       # Run all tests
+```clojure
+(clojure.test/run-tests 'my-project.shopping-cart-test)
 ```
 
-Clornichon integrates with Kaocha for more advanced test execution:
+Clornichon integrates with Kaocha for more advanced test execution, once a suite of type `:kaocha.type/scenari` is declared in `tests.edn` -- see [Running features](running.md#kaocha):
 
 ```bash
 clojure -M:test -m kaocha.runner                  # Run all tests
@@ -298,7 +298,7 @@ Add item to empty cart FAILED
 The failing step is printed in red, and every step after it in grey - they are
 reported as pending rather than dropped, so the scenario stays readable end to end.
 
-The state passed between steps can be examined in the test output when there's a failure.
+To examine the state passed between steps, run the feature as data: `scenari.v2.core/run-feature` returns each step with its `:input-state` and its `:output-state`. See [Running features](running.md#as-data).
 
 ## 6. Advanced Features
 
@@ -324,6 +324,48 @@ Clornichon supports several hook points for setup and teardown:
 - Post-scenario hooks: Run after each scenario
 
 A hook can receive the scenario's name, tags and status, and be restricted to some tags: see [State and hooks](state-and-hooks.md#hooks).
+
+These are declared in the options of each `deffeature`. A hook every feature needs is declared once, as a global hook: a var marked `:scenari/hook`, which also gives `:before-all` and `:after-all` around the whole suite. See [Global hooks](state-and-hooks.md#global-hooks).
+
+## 7. Releasing Clornichon
+
+For the maintainers of the library. `release.sh` tags, builds, publishes to Clojars and pushes. A release takes three steps.
+
+### Commit the "Prepare"
+
+The pom points to the tag, and cljdoc builds its documentation from it: the docs have to be ready in the commit the tag lands on. In one commit, `Prepare 0.1.12`:
+
+- date the `[Unreleased]` section of `CHANGELOG.md` as the version to come, `# [0.1.12] - 2026-09-28`;
+- install that version in `README.md` and in `doc/getting-started.md`.
+
+### Dry run
+
+Without the Clojars credentials, the script checks that and stops before it tags:
+
+```bash
+./release.sh patch
+# Docs are ready for 0.1.12
+# ... CLOJARS_USERNAME is not set
+```
+
+It says what is missing, and refuses a working tree with uncommitted changes:
+
+```
+CHANGELOG.md has no dated section for 0.1.12
+README.md does not install 0.1.12
+doc/getting-started.md does not install 0.1.12
+Nothing tagged: commit the "Prepare 0.1.12" first.
+```
+
+### Release
+
+```bash
+CLOJARS_USERNAME=... CLOJARS_PASSWORD=<deploy token> ./release.sh major|minor|patch
+```
+
+The script bumps the version of the nearest tag, writes it into `src/scenari/meta.clj`, commits and tags. It then builds the jar, deploys it to Clojars, and pushes the commit and the tag only once Clojars accepted the artifact. If the tag is not the one the docs were prepared for, nothing is published: the tag and its commit stay local.
+
+`./build.sh` alone builds the jar of the current version and installs it in the local Maven repository: under `~/.m2` it replaces the artifact of that version downloaded from Clojars.
 
 ## Conclusion
 
