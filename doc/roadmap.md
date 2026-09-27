@@ -25,8 +25,8 @@ Gaps against Cucumber, roughly by value/effort.
 ## Hooks
 
 * [ ] step-level hooks, and suite-level before-all / after-all
-* [ ] tag-conditional hooks (`@before "@web and not @slow"`)
-* [ ] pass the scenario -- name, tags, status -- to the hook, which currently receives nothing
+* [x] tag-conditional hooks, through the `:scenari/tags` metadata of the hook
+* [x] pass the scenario -- name, tags, status -- to a hook declared with one argument
 * [ ] hooks shared across features, instead of one options map per `deffeature`
 
 ## Gherkin

@@ -3,6 +3,18 @@ All notable changes to this project will be documented in this file. This change
 
 # [Unreleased] #
 
+## Added ##
+
+A hook declared with one argument receives what it wraps: `:scenario-name`
+and `:annotations` for a scenario hook, plus `:status` (`:success` or `:fail`)
+after the scenario; `:feature` and `:annotations` for a feature hook. A hook
+that has a zero arity is called without argument as before, even when it also
+has a one-argument arity.
+
+A hook whose var carries `:scenari/tags` metadata, a cucumber tag expression,
+only runs for the scenarios whose tags match it. The expression is parsed when
+the feature is loaded, and an invalid one fails there, naming the hook.
+
 # [0.1.4] - 2026-09-27 #
 
 ## Added ##

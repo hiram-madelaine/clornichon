@@ -48,4 +48,37 @@ The same options map takes the functions to run:
              :post-run          [#'clean]})
 ```
 
-Hooks take no argument. The `:post-*` hooks run even when a step or a `:pre-*` hook throws.
+The `:post-*` hooks run even when a step or a `:pre-*` hook throws.
+
+### What a hook receives
+
+A hook declared with a single argument receives the name and the tags of what it wraps -- the tags without their `@`, those a scenario inherits from its `Feature`, `Rule` and `Examples` included. A hook without argument is called without one, as before:
+
+```clojure
+(defn log-scenario [{:keys [scenario-name annotations status]}]
+  (println scenario-name annotations status))
+```
+
+| Hook                 | Argument                                                  |
+|----------------------|-----------------------------------------------------------|
+| `:pre-scenario-run`  | `{:scenario-name "..." :annotations #{"db"}}`             |
+| `:post-scenario-run` | the same, plus `:status` -- `:success` or `:fail`         |
+| `:pre-run`, `:post-run` | `{:feature "..." :annotations #{...}}`, no `:status`   |
+
+A `:post-scenario-run` hook can so keep what a failed scenario left behind, to look at it, instead of cleaning it up.
+
+The arity is read from the var's `:arglists`: pass hooks as vars (`#'log-scenario`), as above. A bare function has no `:arglists` and is called without argument. A hook with both a zero and a one-argument arity is called without argument: its one-argument arity was written for something else than this map.
+
+### Hooks restricted by tag
+
+Put a [cucumber tag expression](https://github.com/cucumber/tag-expressions) in the `:scenari/tags` metadata of the hook: it only runs where the tags match.
+
+```clojure
+(defn ^{:scenari/tags "@db and not @readonly"} clean-db! []
+  (truncate-tables!))
+
+(deffeature my-specification "./path/to/feature/file"
+            {:post-scenario-run [#'clean-db!]})   ; skipped for the other scenarios
+```
+
+The expression is parsed when the feature is loaded: an invalid one fails there, naming the hook.

@@ -192,6 +192,58 @@ Feature: mixed tags
                                  (constantly nil))))
       (is (= [:post] @journal) "a throwing pre-run must not skip the teardown"))))
 
+(def hook-journal (atom []))
+(defn hook-with-ctx [ctx] (swap! hook-journal conj ctx))
+(defn hook-without-ctx [] (swap! hook-journal conj :no-ctx))
+(defn hook-with-both-arities
+  ([] (swap! hook-journal conj :zero-arity))
+  ([perimetres] (swap! hook-journal conj perimetres)))
+(defn ^{:scenari/tags "@db and not @slow"} db-hook [] (swap! hook-journal conj :db))
+
+(def hooks-source
+  (str "@f\nFeature: hooked\n"
+       "  @db\n  Scenario: green\n    Then My initial state contains foo\n"
+       "  @db @slow\n  Scenario: red\n    When the step blows up\n"))
+
+(defn- run-hooked [options]
+  (reset! hook-journal [])
+  (run! v2/run-scenario (:scenarios (v2/->feature-ast hooks-source options *ns*)))
+  @hook-journal)
+
+(deftest hooks-context-test
+  (testing "a hook with one argument receives the scenario's name and tags, and
+  its status after it; a hook without argument is called as before"
+    (is (= [{:scenario-name "green" :annotations #{"f" "db"}}
+            {:scenario-name "green" :annotations #{"f" "db"} :status :success}
+            :no-ctx
+            {:scenario-name "red" :annotations #{"f" "db" "slow"}}
+            {:scenario-name "red" :annotations #{"f" "db" "slow"} :status :fail}
+            :no-ctx]
+           (run-hooked {:default-scenario-state {:foo 1}
+                        :pre-scenario-run       [#'hook-with-ctx]
+                        :post-scenario-run      [#'hook-with-ctx #'hook-without-ctx]}))))
+
+  (testing "a hook that also has a zero arity keeps being called without
+  argument: its one-argument arity expects something else than the context"
+    (is (= [:zero-arity :zero-arity]
+           (run-hooked {:default-scenario-state {:foo 1}
+                        :post-scenario-run      [#'hook-with-both-arities]}))))
+
+  (testing "a hook tagged :scenari/tags only runs where the scenario's tags match"
+    (is (= [:db] (run-hooked {:default-scenario-state {:foo 1}
+                              :post-scenario-run      [#'db-hook]}))))
+
+  (testing "an invalid tag expression names the hook, at load time"
+    (let [bad (with-meta (fn []) {:scenari/tags "@db and"})]
+      (is (thrown-with-msg? Exception #"hook"
+                            (v2/->feature-ast hooks-source {:post-scenario-run [bad]} *ns*)))))
+
+  (testing "a feature hook receives the feature's name and tags, in kaocha too"
+    (reset! hook-journal [])
+    (v2/run-hooks {:feature "hooked" :annotations #{"f"} :pre-run [{:ref hook-with-ctx :arglists '([ctx])}]}
+                  (constantly nil))
+    (is (= [{:feature "hooked" :annotations #{"f"}}] @hook-journal))))
+
 (deftest scenari-runner-test
   (testing "Using scenari runner"
     (testing "execute success feature"
