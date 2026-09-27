@@ -3,6 +3,8 @@ All notable changes to this project will be documented in this file. This change
 
 # [Unreleased] #
 
+# [0.1.6] - 2026-09-27 #
+
 ## Added ##
 
 `scenari.v2.core/define-parameter-type!` defines a custom token for the

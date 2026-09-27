@@ -32,7 +32,8 @@ Règles :
 | 5  | Hooks reçoivent le scénario + hooks par tag       | 2   | Electre    | FAIT | arité 0 prioritaire (compat Electre) ; 392/392 verts |
 | R3 | Release 0.1.5 (hooks)                             | 2   | les deux   | FAIT | publiée sur Clojars, tag `v0.1.5` |
 | 6  | Sortie cucumber-messages (NDJSON)                 | 3   | communauté | TODO |       |
-| 7  | Types de paramètres custom publics                | 3   | communauté | FAIT | `define-parameter-type!` ; à publier dans 0.1.6 |
+| 7  | Types de paramètres custom publics                | 3   | communauté | FAIT | `define-parameter-type!` |
+| R4 | Release 0.1.6 (types de paramètres custom)        | 3   | communauté | EN COURS | préparée, reste `./release.sh patch` |
 | 8  | Namespace `clornichon.*` (alias)                  | 3   | communauté | TODO | décision à prendre |
 
 ## Détail des items
