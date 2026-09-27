@@ -378,3 +378,17 @@
 (defmacro defwhen [regex params & body] `(defglue ~regex ~params ~@body))
 (defmacro defthen [regex params & body] `(defglue ~regex ~params ~@body))
 (defmacro defand [regex params & body] `(defglue ~regex ~params ~@body))
+
+(defn define-parameter-type!
+  "Defines a `{type-name}` token for the sentence matchers. Its capture is
+  `regex`'s match, converted by `transform`: one argument per capture group of
+  `regex`, or the whole match when it has none.
+
+    (define-parameter-type! \"isbn\" #\"\\d{13}\" parse-isbn)
+    (defgiven \"the book {isbn}\" [state isbn] ...)
+
+  Call it before loading the glues that use the token: a sentence is compiled
+  when its feature is parsed, and an unknown token raises there. Defining a
+  type again replaces it. Returns `type-name`."
+  [type-name regex transform]
+  (glue/define-parameter-type! type-name regex transform))

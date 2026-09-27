@@ -3,6 +3,13 @@ All notable changes to this project will be documented in this file. This change
 
 # [Unreleased] #
 
+## Added ##
+
+`scenari.v2.core/define-parameter-type!` defines a custom token for the
+sentence matchers: `(define-parameter-type! "isbn" #"\d{13}" parse-isbn)`, then
+`(defgiven "the book {isbn}" ...)` receives the converted value. The transform
+gets one argument per capture group of the regex, or the whole match.
+
 # [0.1.5] - 2026-09-27 #
 
 ## Added ##

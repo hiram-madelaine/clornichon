@@ -10,6 +10,23 @@ A literal `/`, `(` or `)` in a sentence must be escaped, or it reads as alternat
 (defthen "the folders {string} \\/ {string} exist" [state a b] ...)
 ```
 
+## Custom parameter types
+
+`define-parameter-type!` adds a token of your own. The regex says what it captures, the function converts it -- once, instead of in every glue that uses it:
+
+```clojure
+(v2/define-parameter-type! "price" #"(\d+\.\d{2}) (EUR|USD)"
+  (fn [amount currency] {:amount (bigdec amount) :currency (keyword currency)}))
+
+(defgiven "a book at {price}" [state price]
+  ;; "a book at 12.50 EUR" => price is {:amount 12.50M, :currency :EUR}
+  (assoc state :price price))
+```
+
+The function receives one argument per capture group of the regex, or the whole match when there is none -- make a group non-capturing (`(?:a|b)`) if it is only there to group.
+
+Define the type before loading the glues that use it, at the top of their namespace or in one they require: a sentence using an unknown token raises when its feature is parsed. Defining a type again replaces it.
+
 ## Regular expressions
 
 A glue defined with a `#"..."` literal stays a plain regex whatever it contains, matching the whole sentence, and its capture groups become the arguments -- make a group non-capturing (`(?:a|b)`) if it is only there to group. A *string* sentence wrapped in `^...$` or `/.../` is read as a regex too.

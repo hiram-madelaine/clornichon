@@ -312,7 +312,7 @@ When multiple step definitions match a step, Clornichon uses namespace proximity
 
 ### Custom Parameter Types
 
-You can extend Clornichon with custom parameter types by creating specialized regex patterns in your step definitions.
+Define your own `{token}` with `define-parameter-type!`: a regex and the function that converts its capture. See [Step expressions](step-expressions.md#custom-parameter-types).
 
 ### Hooks and Lifecycle Management
 

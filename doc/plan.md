@@ -32,7 +32,7 @@ Règles :
 | 5  | Hooks reçoivent le scénario + hooks par tag       | 2   | Electre    | FAIT | arité 0 prioritaire (compat Electre) ; 392/392 verts |
 | R3 | Release 0.1.5 (hooks)                             | 2   | les deux   | FAIT | publiée sur Clojars, tag `v0.1.5` |
 | 6  | Sortie cucumber-messages (NDJSON)                 | 3   | communauté | TODO |       |
-| 7  | Types de paramètres custom publics                | 3   | communauté | TODO |       |
+| 7  | Types de paramètres custom publics                | 3   | communauté | FAIT | `define-parameter-type!` ; à publier dans 0.1.6 |
 | 8  | Namespace `clornichon.*` (alias)                  | 3   | communauté | TODO | décision à prendre |
 
 ## Détail des items
@@ -115,6 +115,10 @@ résultats de run. Plus gros chantier : à détailler quand il passe `EN COURS`.
 ### 7. Types de paramètres custom
 Exposer une fonction publique sur le `ParameterTypeRegistry` de `glue.clj` + doc dans
 `doc/step-expressions.md`.
+
+Fait : `scenari.v2.core/define-parameter-type!` (nom, regex, fonction). Cucumber refuse
+de redéfinir un type : le registre est un atome reconstruit à chaque définition, qui
+invalide aussi le cache des glues. La fonction reçoit un argument par groupe capturant.
 
 ### 8. Namespace `clornichon.*`
 Décision d'abord (alias non cassant vs deux noms à documenter). Pas de code avant.
