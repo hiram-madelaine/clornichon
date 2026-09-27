@@ -3,6 +3,8 @@ All notable changes to this project will be documented in this file. This change
 
 # [Unreleased] #
 
+# [0.1.10] - 2026-09-27 #
+
 ## Added ##
 
 Global hooks: a var marked `^{:scenari/hook :before-scenario}` (or
