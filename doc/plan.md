@@ -47,7 +47,7 @@ Règles :
 | 15 | Ordre du fichier dans la doc HTML, fin de `Rule` en console | 5   | important | FAIT | PR 4 |
 | 16 | Retirer `deffeature` sur un répertoire, et commons-io       | 5   | modéré    | FAIT | PR 5 |
 | 17 | Type hints sur le chemin de matching                        | 5   | modéré    | FAIT | PR 5 ; banc : 1 156 ms → 94 ms ; mesure Electre à l'agent dédié |
-| 18 | Hooks globaux ignorés sans rien dire                        | 5   | modéré    | TODO | |
+| 18 | Hooks globaux ignorés sans rien dire                        | 5   | modéré    | FAIT | PR 6 ; un hook privé tourne |
 | 19 | Code mort, features d'exemple hors du jar                   | 5   | ménage    | TODO | |
 | 20 | `doc/development-workflow.md` à jour                        | 5   | mineur    | TODO | |
 | 21 | `--fail-fast` fait tomber le run au premier step en échec   | 5   | important | FAIT | PR 3 ; traité avant R9, part donc en 0.1.11 |
@@ -365,6 +365,9 @@ Correctif :
 
 Tests : les deux cas, dans `global_hooks_test.clj`. Doc : `doc/state-and-hooks.md`.
 CHANGELOG : `Fixed`.
+
+Fait : un hook privé tourne, comme recommandé. Les deux tests échouent sans le
+correctif.
 
 ### 19. Code mort, features d'exemple hors du jar — ménage
 

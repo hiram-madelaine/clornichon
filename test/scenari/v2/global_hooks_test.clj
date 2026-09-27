@@ -99,6 +99,20 @@ Feature: global hooks
       #(is (thrown-with-msg? clojure.lang.ExceptionInfo #"typo.*:before-scenarios is not one of"
                              (v2/global-hooks))))))
 
+(deftest tagged-suite-hook-test
+  (testing "`:scenari/tags` on a before-all or an after-all throws, naming the
+  hook: the suite has no tags, the hook would never run"
+    (doseq [k [:before-all :after-all]]
+      (with-global-hooks [['tagged {:scenari/hook k :scenari/tags "@db"} (record :tagged)]]
+        #(is (thrown-with-msg? clojure.lang.ExceptionInfo #"tagged.*:scenari/tags has no effect"
+                               (v2/global-hooks)))))))
+
+(deftest private-hook-test
+  (testing "a private var is a hook like another"
+    (with-global-hooks [['hidden {:scenari/hook :before-scenario :private true} (record :hidden)]]
+      #(do (v2/run-features #'global-hooks-feature)
+           (is (= [:hidden] (filter #{:hidden} @calls)))))))
+
 (deftest suite-hooks-test
   (testing "before-all and after-all run once around the suite"
     (with-global-hooks [['start {:scenari/hook :before-all} (record :before-all)]

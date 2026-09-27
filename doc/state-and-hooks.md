@@ -116,7 +116,9 @@ A hook every feature needs -- clean the database before each scenario, start the
 | `:before-feature`, `:after-feature`    | around each feature                     |
 | `:before-scenario`, `:after-scenario`  | around each scenario                    |
 
-They follow the rules of the hooks above: a one-argument hook receives the name and the tags of what it wraps (a `:before-all` / `:after-all` gets an empty map), `:scenari/tags` restricts where it runs, and the `after` ones run even when a step or a `before` hook throws -- one that throws fails what it wraps, as [above](#when-a-hook-throws). A misspelled `:scenari/hook` value throws when the hooks are looked up, naming the hook.
+They follow the rules of the hooks above: a one-argument hook receives the name and the tags of what it wraps (a `:before-all` / `:after-all` gets an empty map), `:scenari/tags` restricts where it runs, and the `after` ones run even when a step or a `before` hook throws -- one that throws fails what it wraps, as [above](#when-a-hook-throws). The var can be private: a `defn-` is a hook like another.
+
+A hook that could never run throws when the hooks are looked up, naming the hook, instead of being skipped in silence: a misspelled `:scenari/hook` value, or `:scenari/tags` on a `:before-all` / `:after-all` -- the suite has no tags, the expression would never match.
 
 **Order.** Global hooks wrap those of the `deffeature`, like an onion: a global `:before-scenario` runs before the feature's `:pre-scenario-run`, a global `:after-scenario` after its `:post-scenario-run`. Between global hooks of one kind, the order is that of their namespaces' names, then of their lines.
 

@@ -299,21 +299,27 @@
   #{:before-all :after-all :before-feature :after-feature :before-scenario :after-scenario})
 
 (defn global-hooks
-  "Les vars marquées `:scenari/hook` dans les namespaces chargés, par clé de
-  `hook-keys`, dans l'ordre des namespaces puis des lignes. Cherchées à
-  l'exécution et pas au parsing : un namespace de hooks que personne ne requiert
-  peut se charger après les features."
+  "Les vars marquées `:scenari/hook` dans les namespaces chargés, privées
+  comprises, par clé de `hook-keys`, dans l'ordre des namespaces puis des
+  lignes. Cherchées à l'exécution et pas au parsing : un namespace de hooks que
+  personne ne requiert peut se charger après les features."
   []
   (->> (all-ns)
-       (mapcat #(vals (ns-publics %)))
+       ;; ns-interns : un hook `defn-` tourne, il n'a pas à être public
+       (mapcat #(vals (ns-interns %)))
        (filter #(:scenari/hook (meta %)))
        (sort-by (juxt #(str (:ns (meta %))) #(:line (meta %) 0)))
        (reduce (fn [m v]
-                 (let [h (:scenari/hook (meta v))]
+                 (let [{h :scenari/hook tags :scenari/tags} (meta v)]
                    ;; une faute de frappe ferait un hook qui ne tourne jamais, sans rien dire
                    (when-not (hook-keys h)
                      (throw (ex-info (str "hook " v " : :scenari/hook " h " is not one of " (sort hook-keys))
                                      {:hook v :scenari/hook h})))
+                   ;; la suite n'a pas de tags : l'expression serait toujours fausse
+                   (when (and tags (#{:before-all :after-all} h))
+                     (throw (ex-info (str "hook " v " : :scenari/tags has no effect on " h
+                                          ", the suite has no tags")
+                                     {:hook v :scenari/hook h :scenari/tags tags})))
                    (update m h (fnil conj []) (->hook v))))
                {})))
 
