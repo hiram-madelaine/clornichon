@@ -24,9 +24,9 @@
 
 ```clojure
 ;; deps.edn
-io.github.hiram-madelaine/clornichon {:mvn/version "0.1.1"}
+io.github.hiram-madelaine/clornichon {:mvn/version "0.1.2"}
 ;; or project.clj
-[io.github.hiram-madelaine/clornichon "0.1.1"]
+[io.github.hiram-madelaine/clornichon "0.1.2"]
 ```
 
 ## In a nutshell
