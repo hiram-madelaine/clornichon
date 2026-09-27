@@ -52,6 +52,13 @@ used to replace the cause.
 
 ## Changed ##
 
+The jar only holds `scenari/`, `kaocha/` and `META-INF/`. It shipped six
+example features at the root of the classpath -- `atm.feature`,
+`calculator.feature`, `product-catalog.feature`, `remember-me.feature`,
+`scenari.feature` and `utilisateurs.story` -- so a
+`(deffeature x "calculator.feature")` in a project could read the one of the
+library instead of its own.
+
 Loading a large suite is faster: matching a step against a glue no longer goes
 through reflection. It is done for every step and every glue, when the
 features are parsed. On a synthetic bench of 3,400 steps against 440 glues the

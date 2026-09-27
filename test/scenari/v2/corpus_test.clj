@@ -38,6 +38,13 @@
             (sort-by first)
             vec))]))
 
+(deftest example-features-test
+  ;; quatre des six exemples livrés dans le jar ne se parsaient plus, sans que
+  ;; rien ne le dise
+  (let [[checked failures] (corpus-failures "test/features")]
+    (is (= 2 checked))
+    (is (empty? failures))))
+
 ;; Défini uniquement quand le corpus est disponible : sans la variable, il n'y a
 ;; rien à vérifier, et un deftest vide compterait comme un échec côté kaocha.
 (when-let [dir (System/getenv "SCENARI_CORPUS")]
