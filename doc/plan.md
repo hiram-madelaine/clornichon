@@ -30,6 +30,7 @@ Règles :
 | R2 | Release 0.1.4 (`--slowest-steps`)                 | 2   | les deux   | FAIT | publiée sur Clojars, tag `v0.1.4` |
 | E1 | Electre passe de scenari `2396ada` à clornichon 0.1.4 | 2 | Electre  | EN COURS | poussé sur `chore/migration-clornichon-0.1.4` (e1aa04e25e), MR + CI à faire |
 | 5  | Hooks reçoivent le scénario + hooks par tag       | 2   | Electre    | FAIT | arité 0 prioritaire (compat Electre) ; 392/392 verts |
+| R3 | Release 0.1.5 (hooks)                             | 2   | les deux   | EN COURS | préparée, reste `./release.sh patch` |
 | 6  | Sortie cucumber-messages (NDJSON)                 | 3   | communauté | TODO |       |
 | 7  | Types de paramètres custom publics                | 3   | communauté | TODO |       |
 | 8  | Namespace `clornichon.*` (alias)                  | 3   | communauté | TODO | décision à prendre |
