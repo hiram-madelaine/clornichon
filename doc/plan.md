@@ -1,7 +1,7 @@
 # Clornichon — prochaines étapes (communauté + refonte Electre)
 
 ## Contexte
-0.1.2 publié (Clojars + cljdoc, docs, ADR). La roadmap (`doc/roadmap.md`) liste les écarts
+0.1.3 publié (Clojars + cljdoc, docs, ADR, CI). La roadmap (`doc/roadmap.md`) liste les écarts
 avec Cucumber. Electre = le « large production codebase » du README (250+ features,
 3 400 steps, 440 glues) ; son code n'est pas accessible ici, le classement Electre
 s'appuie sur la roadmap et le README (perf = priorité).
@@ -25,7 +25,7 @@ Règles :
 | 1  | Step non résolu → message clair, pas NPE          | 1   | les deux   | FAIT | statut `:fail` gardé ; `:undefined` distinct avec #6 |
 | 2  | Retirer les dépendances inutilisées               | 1   | communauté | FAIT | `tools.namespace` gardé : utilisé |
 | 3  | CI GitHub Actions                                 | 1   | communauté | FAIT | 1er run vert sur la PR #1 |
-| R1 | Release 0.1.3                                     | 1   | les deux   | EN COURS | préparée, reste `./release.sh patch` |
+| R1 | Release 0.1.3                                     | 1   | les deux   | FAIT | publiée sur Clojars, tag `v0.1.3` |
 | 4  | Durées step/scénario + rapport « slowest steps »  | 2   | Electre    | TODO |       |
 | 5  | Hooks reçoivent le scénario + hooks par tag       | 2   | Electre    | TODO |       |
 | 6  | Sortie cucumber-messages (NDJSON)                 | 3   | communauté | TODO |       |
