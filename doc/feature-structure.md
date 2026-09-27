@@ -15,6 +15,7 @@ A feature is represented as a map with the following keys:
  :post-run [...]        ; Hooks to execute after the feature
  :messages [...]        ; The parser's Source, GherkinDocument and Pickle envelopes, for cucumber-messages
  :status :success/:fail ; Status after execution
+ :exception ...         ; What a :pre-run or :post-run hook threw, if one did
 }
 ```
 
@@ -49,6 +50,7 @@ Each scenario is represented as a map within the `:scenarios` vector:
  :post-run [...]             ; Hooks to run after the scenario
  :default-state {}           ; Initial state for the scenario
  :status :success/:fail/:pending ; Execution status
+ :exception ...              ; What a hook threw, if one did
  :started-at 1790511573279   ; Epoch millis, once run
  :finished-at 1790511573301
 }

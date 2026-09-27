@@ -141,31 +141,69 @@
                  ::post-run              post-run})]
     (assoc testable :kaocha.test-plan/tests tests)))
 
+(defn- report-hook-failure [what e]
+  (t/do-report {:type :hook-failed :exception e})
+  (t/do-report {:type     :fail
+                :message  (str "Hook threw: " what)
+                :expected "the hook to return"
+                :actual   e
+                ;; caught and counted: --fail-fast stops on the result, its
+                ;; reporter must not throw this one again
+                :kaocha.result/exception e}))
+
+(defn- run-hook-failure
+  "The leaf that carries what an exit hook - `:after-feature`, `:after-all` -
+  threw, next to the results it must not lose: kaocha sums a group from its
+  children, a failure of the group itself would not count."
+  [parent what e test-plan]
+  (let [id (::testable/id parent)]
+    (testable/run-testables
+     [{::testable/type :kaocha.type/scenari-hook
+       ;; a namespace of its own, like a rule's: no scenario name can collide
+       ::testable/id   (keyword (str (some-> (namespace id) (str ".")) (name id) ".hooks") what)
+       ::testable/desc what
+       ::exception     e}]
+     test-plan)))
+
+(defmethod testable/-run :kaocha.type/scenari-hook [testable test-plan]
+  (report-hook-failure (::testable/desc testable) (::exception testable))
+  (merge testable {:kaocha.result/count 1
+                   :kaocha.result/pass  0
+                   :kaocha.result/fail  1}))
+
 (defmethod testable/-run :kaocha.type/scenari [testable test-plan]
-  (sc/run-suite
-   (fn []
-     (let [results (testable/run-testables (:kaocha.test-plan/tests testable) test-plan)]
-       (-> testable
-           (dissoc :kaocha.test-plan/tests)
-           (assoc :kaocha.result/tests results))))))
+  (let [[results e] (sc/try-suite #(testable/run-testables (:kaocha.test-plan/tests testable) test-plan))]
+    ;; nothing ran: a :before-all threw, and that stops the run
+    (when (and e (nil? results))
+      (throw e))
+    (-> testable
+        (dissoc :kaocha.test-plan/tests)
+        (assoc :kaocha.result/tests (cond-> results e (into (run-hook-failure testable "after-all" e test-plan)))))))
+
+(def ^:private ^:dynamic *feature-failure*
+  "What an entry hook of the feature threw: its scenarios fail without running."
+  nil)
 
 (defmethod testable/-run :kaocha.type/scenari-feature [testable test-plan]
   (t/do-report {:type        :begin-feature
                 :feature     (:kaocha.testable/desc testable)
                 :annotations (::annotations testable)
                 :description (::description testable)})
-  (sc/run-hooks
-   {:pre-run     (::pre-run testable)
-    :post-run    (::post-run testable)
-    :feature     (:kaocha.testable/desc testable)
-    :annotations (::annotations testable)}
-   (fn []
-     (let [results (testable/run-testables (:kaocha.test-plan/tests testable) test-plan)
-           testable (-> testable
-                        (dissoc :kaocha.test-plan/tests)
-                        (assoc :kaocha.result/tests results))]
-       (t/do-report {:type :end-feature})
-       testable))))
+  (let [run-scenarios #(let [results (testable/run-testables (:kaocha.test-plan/tests testable) test-plan)]
+                         (t/do-report {:type :end-feature})
+                         results)
+        [results e]   (sc/try-hooks
+                       {:pre-run     (::pre-run testable)
+                        :post-run    (::post-run testable)
+                        :feature     (:kaocha.testable/desc testable)
+                        :annotations (::annotations testable)}
+                       run-scenarios)]
+    (-> testable
+        (dissoc :kaocha.test-plan/tests)
+        (assoc :kaocha.result/tests
+               (cond (nil? e)  results
+                     results   (into results (run-hook-failure testable "after-feature" e test-plan))
+                     :else     (binding [*feature-failure* e] (run-scenarios)))))))
 
 (defmethod testable/-run :kaocha.type/scenari-rule [testable test-plan]
   (t/do-report {:type :begin-rule :rule (:rule testable)})
@@ -176,7 +214,7 @@
 
 (defmethod testable/-run :kaocha.type/scenari-scenario [testable test-plan]
   (t/do-report {:type :begin-scenario :scenario testable})
-  (let [testable (sc/run-scenario testable)]
+  (let [testable (sc/run-scenario testable *feature-failure*)]
     (doseq [step (:steps testable)]
       ;; every step is reported, :pending ones included, so the steps skipped
       ;; after a failure still show up
@@ -192,6 +230,8 @@
                         :message  (str "Step threw: " (:raw step))
                         :expected "the step to return"
                         :actual   e}))))
+    ;; a hook that threw - the scenario's or its feature's - fails the scenario
+    (some->> (:exception testable) (report-hook-failure (:scenario-name testable)))
     (-> testable
         (merge {:kaocha.result/count 1
                 :kaocha.result/pass  (if (= (:status testable) :success) 1 0)
@@ -214,6 +254,7 @@
 (s/def :kaocha.type/scenari-rule any?)
 (s/def :kaocha.type/scenari-scenario any?)
 (s/def :kaocha.type/scenari-step any?)
+(s/def :kaocha.type/scenari-hook any?)
 
 (hierarchy/derive! ::begin-feature :kaocha/begin-group)
 (hierarchy/derive! ::end-feature :kaocha/end-group)
@@ -225,6 +266,7 @@
 (hierarchy/derive! :kaocha.type/scenari-feature :kaocha.testable.type/group)
 (hierarchy/derive! :kaocha.type/scenari-rule :kaocha.testable.type/group)
 (hierarchy/derive! :kaocha.type/scenari-scenario :kaocha.testable.type/leaf)
+(hierarchy/derive! :kaocha.type/scenari-hook :kaocha.testable.type/leaf)
 
 (comment
   (in-ns 'kaocha.type.scenari)

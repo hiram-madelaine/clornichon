@@ -36,10 +36,13 @@
   "The children not skipped, whether the node comes from the test-plan
   (`--doc-html`) or from the run's result (`--doc-report`) - both trees have the
   same shape, under two keys. kaocha.plugin.filter only marks the node that does
-  not pass, not its children: stop on it, do not test them one by one."
+  not pass, not its children: stop on it, do not test them one by one. The leaf
+  that carries what an `:after-feature` or `:after-all` hook threw is no
+  scenario."
   [testable]
-  (remove ::testable/skip (or (:kaocha.test-plan/tests testable)
-                              (:kaocha.result/tests testable))))
+  (remove #(or (::testable/skip %) (= :kaocha.type/scenari-hook (::testable/type %)))
+          (or (:kaocha.test-plan/tests testable)
+              (:kaocha.result/tests testable))))
 
 (defn selected-features
   "The scenari features kept by the filters, each with its kept scenarios under
@@ -111,6 +114,8 @@
        (tags-html (:annotations scenario))
        (desc-html (:description scenario))
        "<ol class=\"steps\">" (apply str (map step-html (:steps scenario))) "</ol>"
+       ;; what a hook threw
+       (error-html (:exception scenario))
        "</section>"))
 
 (defn- feature-status [feature]

@@ -50,6 +50,21 @@ The same options map takes the functions to run:
 
 The `:post-*` hooks run even when a step or a `:pre-*` hook throws.
 
+### When a hook throws
+
+A hook that throws fails what it wraps, and the run goes on:
+
+| The hook that throws                   | What fails                                                                       |
+|----------------------------------------|----------------------------------------------------------------------------------|
+| `:pre-scenario-run`                    | its scenario; the steps do not run and stay `:pending`                           |
+| `:post-scenario-run`                   | its scenario, even if every step passed                                          |
+| `:pre-run`                             | every scenario of the feature, without running                                   |
+| `:post-run`                            | the run; the scenarios keep their results (Kaocha adds a failed `after-feature` test to the feature) |
+
+The next scenario, or the next feature, runs as usual. Every `:post-*` hook runs, whatever the ones before it threw. When several hooks throw, the first exception is the one reported, and it carries the others as suppressed exceptions -- the cause is not hidden by what the teardown throws after it.
+
+`scenari.v2.core/run-feature` returns the exception under `:exception`, on the scenario or on the feature. Under the `clojure.test` runner a `:pre-run` or `:post-run` that throws is an error of the feature's `deftest`.
+
 ### What a hook receives
 
 A hook declared with a single argument receives the name and the tags of what it wraps -- the tags without their `@`, those a scenario inherits from its `Feature`, `Rule` and `Examples` included. A hook without argument is called without one, as before:
@@ -101,10 +116,10 @@ A hook every feature needs -- clean the database before each scenario, start the
 | `:before-feature`, `:after-feature`    | around each feature                     |
 | `:before-scenario`, `:after-scenario`  | around each scenario                    |
 
-They follow the rules of the hooks above: a one-argument hook receives the name and the tags of what it wraps (a `:before-all` / `:after-all` gets an empty map), `:scenari/tags` restricts where it runs, and the `after` ones run even when a step or a `before` hook throws. A misspelled `:scenari/hook` value throws when the hooks are looked up, naming the hook.
+They follow the rules of the hooks above: a one-argument hook receives the name and the tags of what it wraps (a `:before-all` / `:after-all` gets an empty map), `:scenari/tags` restricts where it runs, and the `after` ones run even when a step or a `before` hook throws -- one that throws fails what it wraps, as [above](#when-a-hook-throws). A misspelled `:scenari/hook` value throws when the hooks are looked up, naming the hook.
 
 **Order.** Global hooks wrap those of the `deffeature`, like an onion: a global `:before-scenario` runs before the feature's `:pre-scenario-run`, a global `:after-scenario` after its `:post-scenario-run`. Between global hooks of one kind, the order is that of their namespaces' names, then of their lines.
 
 **When they are looked up.** Once at the start of a run, among the loaded namespaces -- not when the features are parsed, so a namespace of hooks that no feature requires is still found, as long as it is loaded (a namespace under the Kaocha `glue-paths` is). Under the `clojure.test` runner alone, each feature is its own `deftest` and looks them up again.
 
-**Suite hooks and Kaocha.** `:before-all` and `:after-all` run around the `:kaocha.type/scenari` suite, and not with `--dry-run` or `--doc-html`, which run nothing. A `:before-all` that throws stops the run, like a failing `(use-fixtures :once ...)`: no scenario runs, the exception is printed and the exit code is non-zero, and the `:after-all` hooks still run. The `clojure.test` runner has no suite: use `(use-fixtures :once ...)` there.
+**Suite hooks and Kaocha.** `:before-all` and `:after-all` run around the `:kaocha.type/scenari` suite, and not with `--dry-run` or `--doc-html`, which run nothing. A `:before-all` that throws stops the run, like a failing `(use-fixtures :once ...)`: no scenario runs, the exception is printed and the exit code is non-zero, and the `:after-all` hooks still run. An `:after-all` that throws fails the run and keeps its results: the summary, `junit.xml` and the reports are written, with a failed `after-all` test next to the features. The `clojure.test` runner has no suite: use `(use-fixtures :once ...)` there.

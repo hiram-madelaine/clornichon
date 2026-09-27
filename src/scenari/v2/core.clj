@@ -339,26 +339,46 @@
     (f)))
 
 (defn- around
-  "Encadre f par pre-run et post-run. Le teardown est dans un finally : il doit
-  tourner meme si un hook pre-run, la resolution d'un glue ou un report leve -
-  c'est exactement le cas pour lequel il existe."
+  "Encadre f par pre-run et post-run, et rend [r e] : r le retour de f - nil s'il
+  n'a pas tourné -, e ce qu'un hook a levé. Un pre-run qui lève saute les
+  pre-run suivants et f. Tous les post-run tournent, quoi que lèvent un pre-run,
+  f ou un autre post-run : c'est le cas pour lequel le teardown existe. La
+  première exception porte les suivantes en suppressed. Ce que f lève n'est pas
+  l'échec d'un hook : il remonte tel quel, une fois les post-run passés."
   [pre-run post-run ctx f ->status]
-  (let [status (volatile! (when ->status :fail))]
+  (let [status  (volatile! (when ->status :fail))
+        thrown  (volatile! nil)
+        f-threw (volatile! false)
+        r       (volatile! nil)
+        note    (fn [^Throwable e]
+                  (cond (nil? @thrown) (vreset! thrown e)
+                        ;; un delay en échec relève la même instance, et
+                        ;; addSuppressed refuse une exception sur elle-même
+                        (not (identical? e @thrown)) (.addSuppressed ^Throwable @thrown e)))]
     (try (run! #(call-hook % ctx) pre-run)
-         (let [r (f)]
-           (when ->status (vreset! status (->status r)))
-           r)
-         (finally (run! #(call-hook % (cond-> ctx @status (assoc :status @status))) post-run)))))
+         (catch Throwable e (note e)))
+    (when-not @thrown
+      (try (vreset! r (f))
+           (when ->status (vreset! status (->status @r)))
+           (catch Throwable e (note e) (vreset! f-threw true))))
+    (doseq [hook post-run]
+      (try (call-hook hook (cond-> ctx @status (assoc :status @status)))
+           (catch Throwable e (note e))))
+    (when @f-threw (throw @thrown))
+    [@r @thrown]))
 
-(defn run-hooks
+(defn try-hooks
   "Encadre f par les hooks :pre-run et :post-run de x - un scénario s'il a un
   :scenario-name, une feature sinon - et par les hooks globaux de ce niveau, en
   oignon : les globaux entrent avant ceux de x et sortent après eux.
 
   Un hook à un argument reçoit le nom et les tags de x ; avec ->status, qui tire
   :success ou :fail du retour de f, les :post-run reçoivent aussi :status -
-  :fail si f a levé."
-  ([x f] (run-hooks x f nil))
+  :fail si f n'a pas tourné ou a levé.
+
+  Rend [r e], voir `around` : un hook qui lève ne lève pas ici, c'est à
+  l'appelant d'en faire l'échec de x."
+  ([x f] (try-hooks x f nil))
   ([{:keys [pre-run post-run] :as x} f ->status]
    (let [[before after] (if (contains? x :scenario-name)
                           [:before-scenario :after-scenario]
@@ -370,26 +390,50 @@
              f
              ->status))))
 
-(defn run-suite
+(defn- return-or-throw [[r e]]
+  (if e (throw e) r))
+
+(defn run-hooks
+  "`try-hooks`, qui rend le retour de f et lève ce qu'un hook a levé."
+  ([x f] (run-hooks x f nil))
+  ([x f ->status] (return-or-throw (try-hooks x f ->status))))
+
+(defn try-suite
   "Encadre f - toute la suite - par les hooks globaux :before-all et :after-all,
-  appelés sans tags : un hook à un argument reçoit une map vide."
+  appelés sans tags : un hook à un argument reçoit une map vide. Rend [r e],
+  comme `try-hooks` : r est nil si un :before-all a levé."
   [f]
   (with-global-hooks
     #(around (:before-all *global-hooks*) (:after-all *global-hooks*) {} f nil)))
 
+(defn run-suite
+  "`try-suite`, qui rend le retour de f et lève ce qu'un hook a levé."
+  [f]
+  (return-or-throw (try-suite f)))
+
 (defn- steps-status [steps]
   (if (some #(= :fail (:status %)) steps) :fail :success))
 
-(defn run-scenario [scenario]
-  (let [started-at (System/currentTimeMillis)
-        pending-steps (map #(assoc % :status :pending) (:steps scenario))
-        result-steps (run-hooks scenario
-                                #(run-steps pending-steps (:default-state scenario) pending-steps)
-                                steps-status)]
-    (-> scenario
-        (assoc :steps result-steps)
-        (assoc :started-at started-at :finished-at (System/currentTimeMillis))
-        (assoc :status (steps-status result-steps)))))
+(defn run-scenario
+  "Le scénario une fois joué, entre ses hooks. Un hook qui lève en fait un
+  scénario :fail, qui porte l'exception sous :exception - ses steps restent
+  :pending si c'est un hook d'entrée. Avec `failure`, ce qu'un hook de sa
+  feature a levé, le scénario échoue de même sans rien jouer."
+  ([scenario] (run-scenario scenario nil))
+  ([scenario failure]
+   (let [started-at (System/currentTimeMillis)
+         pending-steps (map #(assoc % :status :pending) (:steps scenario))
+         [result-steps e] (if failure
+                            [nil failure]
+                            (try-hooks scenario
+                                       #(run-steps pending-steps (:default-state scenario) pending-steps)
+                                       steps-status))
+         result-steps (or result-steps pending-steps)]
+     (-> scenario
+         (assoc :steps result-steps)
+         (assoc :started-at started-at :finished-at (System/currentTimeMillis))
+         (assoc :status (if e :fail (steps-status result-steps)))
+         (cond-> e (assoc :exception e))))))
 
 (defn run-scenarios [scenarios [scenario & others]]
   (if-not scenario
@@ -400,10 +444,13 @@
 
 (defn run-feature [feature]
   (let [{:keys [scenarios] :as feature-ast} (get (meta feature) :scenari/feature-ast)
-        scenarios (run-hooks feature-ast #(run-scenarios scenarios scenarios))]
+        [ran e] (try-hooks feature-ast #(run-scenarios scenarios scenarios))
+        ;; un hook d'entrée a levé, rien n'a tourné : chaque scénario échoue à sa place
+        scenarios (or ran (map #(run-scenario % e) scenarios))]
     (-> feature-ast
         (assoc :scenarios scenarios)
-        (assoc :status (if (contains? (set (map :status scenarios)) :fail) :fail :success)))))
+        (assoc :status (if (or e (contains? (set (map :status scenarios)) :fail)) :fail :success))
+        (cond-> e (assoc :exception e)))))
 
 (defn run-features
   ([] (apply run-features (filter #(some? (:scenari/feature-ast (meta %))) (vals (ns-interns *ns*)))))

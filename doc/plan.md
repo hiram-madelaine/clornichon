@@ -39,7 +39,7 @@ Règles :
 | 8  | Namespace `clornichon.*` (alias)                            | 3   | —         | TODO | décision à prendre ; reco : garder `scenari.*`, l'expliquer dans le README |
 | 9  | Hooks globaux + before-all / after-all                      | 4   | —         | EN COURS | livré en 0.1.10 ; reste la mesure Electre (synthétique : coût nul) |
 | 11 | Niveau `Rule` dans le rapport et l'arbre kaocha             | 4   | —         | EN COURS | livré en 0.1.9 ; reste la mesure Electre (coût attendu nul) |
-| 12 | Un hook qui lève fait échouer son scénario, pas le run      | 5   | critique  | TODO | |
+| 12 | Un hook qui lève fait échouer son scénario, pas le run      | 5   | critique  | FAIT | branche `hook-failures` ; NDJSON : pas d'enveloppe `hook`, voir le détail |
 | 13 | `release.sh` prépare la doc avant de taguer                 | 5   | important | TODO | à faire avant R9 |
 | 14 | `-load` charge aussi les `test-paths`                       | 5   | important | TODO | l'exemple `tests.edn` de la doc ne charge pas |
 | R9 | Release 0.1.11 (12, 13, 14)                                 | 5   | —         | TODO | |
@@ -49,10 +49,11 @@ Règles :
 | 18 | Hooks globaux ignorés sans rien dire                        | 5   | modéré    | TODO | |
 | 19 | Code mort, features d'exemple hors du jar                   | 5   | ménage    | TODO | |
 | 20 | `doc/development-workflow.md` à jour                        | 5   | mineur    | TODO | |
-| R10 | Release 0.1.12 (15 à 20)                                   | 5   | —         | TODO | |
+| 21 | `--fail-fast` fait tomber le run au premier step en échec   | 5   | important | TODO | trouvé en traitant 12 |
+| R10 | Release 0.1.12 (15 à 21)                                   | 5   | —         | TODO | |
 
 Ordre proposé : 12 (le seul critique), 13 (pour que R9 ne refasse pas l'erreur de
-0.1.10), 14, R9 ; puis 15 à 20 dans l'ordre, R10. Les items 16 à 20 sont indépendants
+0.1.10), 14, R9 ; puis 15 à 21 dans l'ordre, R10. Les items 16 à 21 sont indépendants
 les uns des autres et peuvent se prendre dans n'importe quel ordre.
 
 À décider en ouvrant le lot : 9 et 11 sont livrés et n'attendent qu'une mesure faite
@@ -145,6 +146,27 @@ exceptions, la première remonte et porte la seconde ; un after-all qui lève ga
 résultats. Vérifier à la main sur le projet jetable que `junit.xml` est écrit.
 Doc : `doc/state-and-hooks.md`, la phrase « The `:post-*` hooks run even when... » à
 compléter. CHANGELOG : `Fixed`.
+
+Fait, et ce qui diffère du correctif prévu :
+- `around` rend `[r e]` au lieu de lever ; `try-hooks` et `try-suite` l'exposent,
+  `run-hooks` et `run-suite` gardent leur contrat (ils lèvent). Ce que `f` lève n'est pas
+  l'échec d'un hook et remonte tel quel.
+- L'échec d'un hook de scénario est attrapé dans `core/run-scenario`, pas dans le `-run`
+  kaocha : les trois runners en profitent. Le scénario porte l'exception sous
+  `:exception`.
+- `:after-feature` et `:after-all` : kaocha tire le total d'un groupe de ses enfants,
+  l'échec du groupe lui-même ne compte pas. L'échec est porté par une feuille
+  `after-feature` ou `after-all` (type `:kaocha.type/scenari-hook`) ajoutée aux
+  résultats — d'où 6 tests au résumé pour 5 scénarios. `scenari-doc/kept` l'écarte des
+  rapports.
+- Runner `clojure.test` : un hook de scénario qui lève est rapporté (`:hook-failed`) et
+  le scénario suivant tourne ; un hook de feature qui lève reste l'erreur du `deftest`.
+- Vérifié sur le projet jetable, un hook par clé : résumé, `junit.xml` et NDJSON écrits,
+  code de sortie non nul ; `--fail-fast` s'arrête proprement sur un hook qui lève.
+
+Reste, hors de cet item : le NDJSON n'a pas d'enveloppe `hook`. Un scénario qu'un hook
+fait échouer y a tous ses steps `SKIPPED` ou `PASSED`, et l'échec n'est porté que par
+`testRunFinished.success: false`. À ajouter si un consommateur du flux en a besoin.
 
 ### 13. `release.sh` prépare la doc avant de taguer — important
 
@@ -289,6 +311,29 @@ et `META-INF/`. CHANGELOG : `Changed` pour le contenu du jar, rien pour le code 
   les exemples gardent un `state` final devenu inutile ;
 - `clojure -M:test` ne lance pas les tests ;
 - les hooks globaux n'y figurent pas : renvoyer à `doc/state-and-hooks.md#global-hooks`.
+
+### 21. `--fail-fast` fait tomber le run au premier step en échec — important
+
+Constat, trouvé en traitant l'item 12, reproduit sur 0.1.10 : avec `--fail-fast`, un
+step qui échoue sur un `is` sort sur `Execution error (ExceptionInfo)
+{:kaocha/fail-fast true ...}`, sans résumé ni NDJSON. C'est l'option qu'on passe en CI
+pour gagner du temps.
+
+```bash
+clojure -M:test -m kaocha.runner --fail-fast    # avec un scénario rouge
+```
+
+Où : le reporter `kaocha.report/fail-fast` lève depuis le `is` du step ; `run-step`
+l'attrape comme l'exception du step ; `-run :kaocha.type/scenari-scenario` la rapporte
+alors en `:fail` « Step threw », et le reporter lève une seconde fois, hors de tout
+`catch`. `kaocha.type.var` s'en sort en avalant cette exception : `run-testables`
+s'arrête de lui-même sur un résultat en échec.
+
+Correctif : dans le `-run` du scénario, ne pas rapporter un step dont l'exception porte
+`:kaocha/fail-fast`, et passer `:kaocha.result/exception` sur le `:fail` d'un step qui
+lève, comme `report-hook-failure` le fait déjà pour un hook.
+Tests : `feature_test.clj`, un scénario rouge sous `testable/*fail-fast?*` lié à `true`
+rend un résultat au lieu de lever. CHANGELOG : `Fixed`.
 
 ### R10. Release 0.1.12
 Après 15 à 20. Peut se scinder si un item traîne.
