@@ -275,7 +275,10 @@
            (catch Throwable e
              (-> step
                  (assoc :input-state scenario-state)
-                 (assoc :exception e)
+                 ;; sous --fail-fast kaocha lève un marqueur depuis le `is` qui
+                 ;; échoue, pour sauter la suite du test : l'assertion est déjà
+                 ;; rapportée, le marqueur n'est pas l'exception du step
+                 (cond-> (not (:kaocha/fail-fast (ex-data e))) (assoc :exception e))
                  (assoc :started-at started-at :duration-ns (- (System/nanoTime) t0))
                  (assoc :status :fail)))))))
 
