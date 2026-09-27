@@ -58,7 +58,7 @@ A `defthen` ending on an assertion keeps the state it received: no trailing `sta
 (deffeature shopping-cart "test/features/cart.feature")
 ```
 
-`deffeature` defines a `deftest` named `shopping-cart`. It takes a path on the filesystem or on the classpath, a directory of features, or the Gherkin text itself. Each step's glue is resolved right there, so the glues must be loaded before the `deffeature` -- in the same namespace above it, or in a namespace it requires.
+`deffeature` defines a `deftest` named `shopping-cart`. It takes a path on the filesystem or on the classpath, a `java.io.File`, or the Gherkin text itself -- one feature per `deffeature`. Each step's glue is resolved right there, so the glues must be loaded before the `deffeature` -- in the same namespace above it, or in a namespace it requires.
 
 ## 5. Run it
 

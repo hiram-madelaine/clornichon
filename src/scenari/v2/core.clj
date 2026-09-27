@@ -8,8 +8,7 @@
            (io.cucumber.tagexpressions Expression TagExpressionParser)
            (io.cucumber.messages.types Envelope Source SourceMediaType StepKeywordType)
            (java.io File)
-           (java.util Optional)
-           (org.apache.commons.io FileUtils)))
+           (java.util Optional)))
 
 ;; ------------------------
 ;;          LOAD
@@ -41,23 +40,11 @@
            (opt (.getMediaType doc)) (assoc :media-type (opt (.getMediaType doc))))]))))
 
 (defn file-from-fs-or-classpath [x]
-  (let [r (io/resource x)
+  (let [;; io/resource ne prend qu'une chaîne, et levait sur un File
+        r (when (string? x) (io/resource x))
         f (when (and (instance? File x) (.exists x)) x)
         f-str (when (and (instance? String x) (.exists (io/as-file x))) x)]
     (io/as-file (or r f f-str))))
-
-(defn get-feature-files [basedir]
-  (letfn [(find-spec-files [basedir]
-            (FileUtils/listFiles
-             basedir
-             (into-array ["story" "feature"])
-             true                                          ;;recursive
-             ))]
-    (case (str (type basedir))
-      "class java.lang.String" (if (.exists (File. ^String basedir))
-                                 (find-spec-files (File. ^String basedir))
-                                 (throw (RuntimeException. (str basedir " doesn't exists in path: " (System/getProperty "user.dir")))))
-      "class java.io.File" (find-spec-files basedir))))
 
 (defmulti read-source
   (fn [path]
@@ -70,14 +57,16 @@
           :feature-as-str)
         (if (instance? File path)
           (file-or-dir path)
-          (throw (RuntimeException. (str "type " (type path) "for spec not accepted (only string or file)")))))))
+          (throw (RuntimeException. (str "type " (type path) " for spec not accepted (only string or file)")))))))
   :default :file)
 
 (defmethod read-source
   :dir
   [path]
-  (doseq [spec-file (get-feature-files path)]
-    (read-source spec-file)))
+  ;; lire le répertoire n'a jamais marché, et un deffeature est le deftest
+  ;; d'une feature : le dire plutôt que laisser `slurp` échouer sur le répertoire
+  (throw (ex-info (str path " is a directory: a deffeature reads one feature, write one per file")
+                  {:path path})))
 
 (defmethod read-source
   :file
