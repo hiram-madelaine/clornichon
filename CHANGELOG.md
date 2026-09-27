@@ -5,6 +5,11 @@ All notable changes to this project will be documented in this file. This change
 
 ## Fixed ##
 
+A hook whose `is` fails fails what it wraps, like a hook that throws. Kaocha
+printed `FAIL in ...` and the run stayed green: `0 failures` in the summary and
+in `junit.xml`, exit code 0, and the steps ran after a failed
+`:before-scenario`. The exception reported names the hook.
+
 A global hook that could never run no longer stays silent. A private one -- a
 `defn-` marked `:scenari/hook` -- runs like another: the lookup only saw the
 public vars. `:scenari/tags` on a `:before-all` or an `:after-all` throws when

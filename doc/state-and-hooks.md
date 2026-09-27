@@ -61,6 +61,8 @@ A hook that throws fails what it wraps, and the run goes on:
 | `:pre-run`                             | every scenario of the feature, without running                                   |
 | `:post-run`                            | the run; the scenarios keep their results (Kaocha adds a failed `after-feature` test to the feature) |
 
+A hook whose assertion fails -- an `is` that is false, or whose form raises -- counts as a hook that throws, with an exception that names it: `hook #'my.ns/clean-db! : an assertion failed`. The assertion itself is reported as usual, above it.
+
 The next scenario, or the next feature, runs as usual. Every `:post-*` hook runs, whatever the ones before it threw. When several hooks throw, the first exception is the one reported, and it carries the others as suppressed exceptions -- the cause is not hidden by what the teardown throws after it.
 
 `scenari.v2.core/run-feature` returns the exception under `:exception`, on the scenario or on the feature. Under the `clojure.test` runner a `:pre-run` or `:post-run` that throws is an error of the feature's `deftest`.
