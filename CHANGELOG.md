@@ -3,6 +3,8 @@ All notable changes to this project will be documented in this file. This change
 
 # [Unreleased] #
 
+# [0.1.4] - 2026-09-27 #
+
 ## Added ##
 
 Every step run carries its `:duration-ns`, the time its glue took. The new

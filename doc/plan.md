@@ -27,6 +27,7 @@ Règles :
 | 3  | CI GitHub Actions                                 | 1   | communauté | FAIT | 1er run vert sur la PR #1 |
 | R1 | Release 0.1.3                                     | 1   | les deux   | FAIT | publiée sur Clojars, tag `v0.1.3` |
 | 4  | Durées step/scénario + rapport « slowest steps »  | 2   | Electre    | FAIT | 0 surcoût mesurable sur Electre ; 1 glue = ~28 % de la suite |
+| R2 | Release 0.1.4 (`--slowest-steps`)                 | 2   | les deux   | EN COURS | préparée, reste `./release.sh patch` |
 | 5  | Hooks reçoivent le scénario + hooks par tag       | 2   | Electre    | TODO |       |
 | 6  | Sortie cucumber-messages (NDJSON)                 | 3   | communauté | TODO |       |
 | 7  | Types de paramètres custom publics                | 3   | communauté | TODO |       |
