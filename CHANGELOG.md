@@ -3,10 +3,25 @@ All notable changes to this project will be documented in this file. This change
 
 # [Unreleased] #
 
+# [0.1.2] - 2026-09-27 #
+
+## Changed ##
+
+The documentation moves from the README to `doc/`, published on
+[cljdoc](https://cljdoc.org/d/io.github.hiram-madelaine/clornichon): getting
+started, step expressions, state and hooks, running features, migrating from
+scenari, a glossary and architecture decision records. No change to the library.
+
+# [0.1.1] - 2026-09-27 #
+
+First release of Clornichon, forked from scenari 2.0.2: every change since
+scenari 2.0.2 is below. 0.1.0 was rejected by Clojars for lacking a licence and
+was never published.
+
 ## Changed ##
 
 The project becomes Clornichon, published as `io.github.hiram-madelaine/clornichon`
-from 0.1.0 on (instead of `io.defsquare/scenari`). The namespaces keep their
+from 0.1.1 on (instead of `io.defsquare/scenari`). The namespaces keep their
 `scenari.*` names and the kaocha type stays `:kaocha.type/scenari`: only the
 dependency coordinates change.
 
@@ -66,9 +81,6 @@ plain regex whatever it contains, and still matches the whole sentence; a string
 sentence wrapped in `^...$` or `/.../` is read as a regex too. The `/` of an
 alternation is stripped from the generated var name, which `defn` would reject
 as a qualified symbol.
-
-Arguments passed to a step fn are unchanged for now: they still come from the
-sentence's literals, not from the expression match.
 
 Breaking:
 
