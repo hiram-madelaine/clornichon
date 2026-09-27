@@ -16,7 +16,8 @@
             [clojure.string :as str]
             [kaocha.output :as output]
             [kaocha.plugin :refer [defplugin]]
-            [kaocha.testable :as testable]))
+            [kaocha.testable :as testable]
+            [scenari.v2.table :as table]))
 
 ;; les clés que kaocha.type.scenari pose sur la feature - écrites en toutes
 ;; lettres pour ne pas charger ce namespace juste pour deux mots-clés
@@ -63,14 +64,14 @@
   (when-not (str/blank? description)
     (str "<pre class=\"desc\">" (esc description) "</pre>")))
 
-(defn- table-html [rows]
-  ;; l'ordre des colonnes suit celui des clés de la ligne, comme le rendu terminal
-  (let [headers (keys (first rows))]
+(defn- table-html [t]
+  ;; les cellules telles qu'écrites, comme le rendu terminal
+  (let [[header & rows] (table/cells t)]
     (str "<table><thead><tr>"
-         (apply str (for [h headers] (str "<th>" (esc (name h)) "</th>")))
+         (apply str (for [h header] (str "<th>" (esc h) "</th>")))
          "</tr></thead><tbody>"
          (apply str (for [row rows]
-                      (str "<tr>" (apply str (for [h headers] (str "<td>" (esc (get row h "")) "</td>"))) "</tr>")))
+                      (str "<tr>" (apply str (for [c row] (str "<td>" (esc c) "</td>"))) "</tr>")))
          "</tbody></table>")))
 
 (defn- params-html

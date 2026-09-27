@@ -102,3 +102,14 @@
             out  (render {:type :begin-step :step step})]
         (is (string/includes? out "|   | val |\n"))
         (is (string/includes? out "|   | 1   |\n"))))))
+
+(deftest one-row-datatable-rendering-test
+  (testing "a one-row table - a key/value pair - is printed from its cells: the
+  vector of maps it gives is empty, and the report used to print nothing"
+    (binding [output/*colored-output* false]
+      (let [table (with-redefs [t/do-report (constantly nil)]
+                    (-> (core/->feature-ast "Feature: t\n  Scenario: s\n    Given a book\n      | title | Dune |\n" {} 'user)
+                        :scenarios first :steps first))]
+        (is (= (str "  Given a book\n"
+                    "      | title | Dune |\n")
+               (render {:type :begin-step :step (assoc table :status :success)})))))))

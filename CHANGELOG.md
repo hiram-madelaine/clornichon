@@ -3,6 +3,15 @@ All notable changes to this project will be documented in this file. This change
 
 # [Unreleased] #
 
+## Added ##
+
+`scenari.v2.table` reads a datatable other ways than the vector of maps a step
+receives: `as-list` (one column or one row), `as-map` (a key/value table),
+`transpose` (headers in the first column) and `cells` (rows as written). The
+vector keeps the cells under `:scenari/cells` in its metadata; what a step
+receives is unchanged. The report prints a table from those cells, so a one-row
+table is printed too.
+
 # [0.1.9] - 2026-09-27 #
 
 ## Added ##

@@ -23,16 +23,18 @@
 
 (defn argument->params
   "The block argument of a pickle step - datatable or docstring - as a param
-  vector. Cells arrive trimmed and unescaped from the parser."
+  vector. Cells arrive trimmed and unescaped from the parser. A table is a
+  vector of maps keyed by its first row, carrying every row as written under
+  `:scenari/cells` in its metadata, for `scenari.v2.table`."
   [arg]
   (when arg
     (if-let [table (opt (.getDataTable arg))]
-      (let [cells   (fn [row] (map #(.getValue %) (.getCells row)))
-            rows    (.getRows table)
-            headers (map (comp keyword string/trim) (cells (first rows)))]
+      (let [cells   (mapv (fn [row] (mapv #(.getValue %) (.getCells row))) (.getRows table))
+            headers (map (comp keyword string/trim) (first cells))]
         ;; array-map, not hash-map: it keeps the column order of the feature file
-        ;; whatever the width, which the report relies on to print the table back
-        [{:type :table :val (mapv #(apply array-map (interleave headers (cells %))) (rest rows))}])
+        ;; whatever the width
+        [{:type :table :val (with-meta (mapv #(apply array-map (interleave headers %)) (rest cells))
+                              {:scenari/cells cells})}])
       (when-let [doc (opt (.getDocString arg))]
         [(cond-> {:type :doc-string :val (.getContent doc)}
            ;; ```json marks the content type, and a step may want to know
