@@ -43,7 +43,7 @@ Règles :
 | 12 | Un hook qui lève fait échouer son scénario, pas le run      | 5   | critique  | FAIT | PR 1 ; NDJSON : pas d'enveloppe `hook`, voir le détail |
 | 13 | `release.sh` prépare la doc avant de taguer                 | 5   | important | FAIT | PR 2 ; garde-fou, le « Prepare » reste à la main |
 | 14 | `-load` charge aussi les `test-paths`                       | 5   | important | FAIT | PR 2 |
-| R9 | Release 0.1.11 (12 à 23, tout le lot 5)                     | 5   | —         | EN COURS | préparée, reste `./release.sh patch` avec les identifiants Clojars |
+| R9 | Release 0.1.11 (12 à 23, tout le lot 5)                     | 5   | —         | FAIT | publiée sur Clojars, tag `v0.1.11` |
 | 15 | Ordre du fichier dans la doc HTML, fin de `Rule` en console | 5   | important | FAIT | PR 4 |
 | 16 | Retirer `deffeature` sur un répertoire, et commons-io       | 5   | modéré    | FAIT | PR 5 |
 | 17 | Type hints sur le chemin de matching                        | 5   | modéré    | FAIT | PR 5 ; banc : 1 156 ms → 94 ms ; mesure Electre à l'agent dédié |
@@ -266,6 +266,12 @@ R9 a été prise, et `release.sh` publie `HEAD`. R10 n'a plus rien à publier.
 Préparée le 2026-09-27 : « Prepare 0.1.11 » sur `master`, non poussé — `release.sh` le
 pousse avec le tag, une fois l'artefact accepté par Clojars. Essai à blanc :
 `Docs are ready for 0.1.11`, puis arrêt sur `CLOJARS_USERNAME is not set`.
+
+Publiée le 2026-09-27. Vérifié après coup :
+- le tag `v0.1.11` est sur GitHub, sur le commit qui suit le « Prepare » ;
+- le jar de Clojars ne contient que `scenari/`, `kaocha/` et `META-INF/`, et son pom
+  pointe sur `v0.1.11` ;
+- cljdoc, build 115048 : 13 namespaces, sans erreur ; son README installe 0.1.11.
 
 ### 15. Ordre du fichier dans la doc HTML, fin de `Rule` en console — important
 
