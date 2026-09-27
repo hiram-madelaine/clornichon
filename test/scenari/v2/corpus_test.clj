@@ -8,9 +8,17 @@
 
   Sans la variable d'environnement, le test ne fait rien : le corpus vit hors du
   repo et n'est pas versionné ici."
-  (:require [clojure.string :as string]
+  (:require [clojure.java.io :as io]
+            [clojure.string :as string]
             [clojure.test :as t :refer [deftest is]]
-            [scenari.v2.core :as core]))
+            [scenari.v2.core :as core])
+  (:import (java.io File)))
+
+(defn- feature-files
+  "Les .feature et .story sous dir, à toute profondeur."
+  [dir]
+  (filter (fn [^File f] (and (.isFile f) (re-find #"\.(feature|story)$" (.getName f))))
+          (file-seq (io/file dir))))
 
 (defn corpus-failures
   "Construit l'AST de chaque feature du répertoire et renvoie [[chemin motif] ...]
@@ -18,7 +26,7 @@
   ressortirait en :missing-step — un événement que le reporter kaocha ne sait pas
   traiter — d'où la neutralisation de do-report : seul le parsing est en test."
   [dir]
-  (let [files (core/get-feature-files dir)]
+  (let [files (feature-files dir)]
     [(count files)
      (with-redefs [t/do-report (constantly nil)]
        (->> files
@@ -26,7 +34,7 @@
                     (try (core/->feature-ast (slurp f) {} *ns*) nil
                          (catch Throwable e
                            ;; le message de gherkin porte déjà sa ligne et sa colonne
-                           [(.getPath f) (first (string/split-lines (str (.getMessage e))))]))))
+                           [(.getPath ^File f) (first (string/split-lines (str (.getMessage e))))]))))
             (sort-by first)
             vec))]))
 

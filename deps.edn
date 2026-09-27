@@ -9,7 +9,6 @@
              ;; 6.1.2 est la dernière version sans dépendance transitive : les
              ;; 9.x/11.x tirent jspecify, et 11.0.1 avec une plage de versions
              io.cucumber/tag-expressions         {:mvn/version "6.1.2"}
-             commons-io/commons-io               {:mvn/version "2.6"}
              lambdaisland/kaocha                 {:mvn/version "1.87.1366"}
              org.clojure/tools.namespace         {:mvn/version "0.3.1"}}
 

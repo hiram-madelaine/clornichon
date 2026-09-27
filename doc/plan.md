@@ -45,7 +45,7 @@ Règles :
 | 14 | `-load` charge aussi les `test-paths`                       | 5   | important | FAIT | PR 2 |
 | R9 | Release 0.1.11 (12, 13, 14, 21)                             | 5   | —         | TODO | |
 | 15 | Ordre du fichier dans la doc HTML, fin de `Rule` en console | 5   | important | FAIT | PR 4 |
-| 16 | Retirer `deffeature` sur un répertoire, et commons-io       | 5   | modéré    | TODO | |
+| 16 | Retirer `deffeature` sur un répertoire, et commons-io       | 5   | modéré    | FAIT | PR 5 |
 | 17 | Type hints sur le chemin de matching                        | 5   | modéré    | TODO | 765 ms → 105 ms au chargement, banc synthétique |
 | 18 | Hooks globaux ignorés sans rien dire                        | 5   | modéré    | TODO | |
 | 19 | Code mort, features d'exemple hors du jar                   | 5   | ménage    | TODO | |
@@ -304,6 +304,18 @@ Correctif, par suppression :
 CHANGELOG : `Changed`, avec la même note que pour `tools.logging` en 0.1.3 — un projet
 qui utilisait commons-io à travers Clornichon doit le déclarer.
 
+Fait, et ce qui diffère du correctif prévu :
+- `read-source :dir` n'est pas supprimé mais lève une erreur qui dit quoi faire : sans
+  lui un répertoire tombait sur `slurp`, `FileNotFoundException (Is a directory)` ;
+- trouvé en route : un `java.io.File` levait la même `ClassCastException`, pour un
+  fichier comme pour un répertoire — `io/resource` ne prend qu'une chaîne. Corrigé dans
+  `file-from-fs-or-classpath`, CHANGELOG `Fixed` ;
+- les deux CVE sont confirmées par la base OSV : CVE-2021-29425, corrigée en 2.7, et
+  CVE-2024-47554, corrigée en 2.14.0.
+
+Vérifié : commons-io n'est plus dans `clojure -Stree` ni dans le pom du jar construit ;
+le test de corpus trouve les mêmes fichiers avant et après.
+
 ### 17. Type hints sur le chemin de matching — modéré
 
 Constat : `*warn-on-reflection*` sort 92 avertissements dans `core.clj` et 15 dans
@@ -352,6 +364,10 @@ CHANGELOG : `Fixed`.
 copié par `script/build.clj`. Un `(deffeature x "calculator.feature")` côté utilisateur
 peut résoudre celle de la bibliothèque. Les passer sous `test/`, et `grep` leurs usages
 dans `test/` et `doc/` avant de les bouger.
+
+Vu en traitant 16 : quatre des six ne se parsent plus (`product-catalog`, `remember-me`,
+`scenari`, `utilisateurs.story`), elles sont dans la grammaire d'avant gherkin. Celles-là
+sont à supprimer plutôt qu'à déplacer, si rien ne les lit.
 
 Vérifier : `unzip -l target/clornichon-*.jar` ne liste plus que `scenari/`, `kaocha/`
 et `META-INF/`. CHANGELOG : `Changed` pour le contenu du jar, rien pour le code mort.

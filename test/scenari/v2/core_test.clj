@@ -1,5 +1,6 @@
 (ns scenari.v2.core-test
   (:require [clojure.string :as string]
+            [clojure.java.io :as io]
             [clojure.test :as t :refer [is]]
             [scenari.v2.core :as v2]
             [scenari.v2.test :as sc-test]
@@ -25,6 +26,25 @@
     (t/is (some? (macroexpand '(v2/deffeature example-feature (slurp "test/scenari/v2/example.feature")))))
     (t/is (some? (macroexpand '(v2/deffeature example-feature (first (vector (slurp "test/scenari/v2/example.feature")))))))
     (t/is (some? (macroexpand '(v2/deffeature (symbol (str "example-feature")) (first (vector (slurp "test/scenari/v2/example.feature")))))))))
+
+(t/deftest read-source-test
+  (let [text (slurp "test/scenari/v2/example.feature")]
+    (t/testing "une feature se lit d'un chemin, du classpath, d'un File ou de son texte"
+      (is (= text (v2/read-source "test/scenari/v2/example.feature")))
+      (is (= text (v2/read-source "scenari/v2/example.feature")))
+      (is (= text (v2/read-source (io/file "test/scenari/v2/example.feature")))
+          "un File levait une ClassCastException : io/resource ne prend qu'une chaîne")
+      (is (= text (v2/read-source text)))))
+
+  (t/testing "un répertoire est refusé en le disant : un deffeature lit une feature"
+    (is (thrown-with-msg? clojure.lang.ExceptionInfo #"test/scenari/v2 is a directory"
+                          (v2/read-source "test/scenari/v2")))
+    (is (thrown-with-msg? clojure.lang.ExceptionInfo #"is a directory"
+                          (v2/read-source (io/file "test/scenari/v2")))))
+
+  (t/testing "ce qui n'est ni une chaîne ni un File est refusé"
+    (is (thrown-with-msg? RuntimeException #"java.lang.Long for spec not accepted"
+                          (v2/read-source 42)))))
 
 (comment
   (remove-ns 'scenari.v2.core-test)

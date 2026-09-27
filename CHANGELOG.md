@@ -5,6 +5,9 @@ All notable changes to this project will be documented in this file. This change
 
 ## Fixed ##
 
+A `deffeature` takes a `java.io.File`. It threw a `ClassCastException`, for a
+file as for a directory.
+
 `--doc-html` and `--doc-report` write the features and the scenarios in the
 order of their files. They followed the order Kaocha's `randomize` plugin, on
 by default, gave the run: the document changed at each run.
@@ -37,6 +40,17 @@ exception is reported and carries the others as suppressed, where the last one
 used to replace the cause.
 
 ## Changed ##
+
+`commons-io` is no longer a dependency: it only served to list the features of
+a directory, which never worked. A project that used it through Clornichon must
+now declare it itself. The 2.6 that was pulled in is the target of
+CVE-2021-29425 and CVE-2024-47554.
+
+A `deffeature` given a directory says so -- `... is a directory: a deffeature
+reads one feature, write one per file` -- instead of a `ClassCastException`.
+The documentation announced it took one; it never did.
+`scenari.v2.core/get-feature-files` is removed with it.
+
 
 `scenari.v2.core/run-feature` and `run-scenario` no longer throw what a hook
 threw: the scenario, or the feature, is `:fail` and holds it under `:exception`.
