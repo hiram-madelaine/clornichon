@@ -33,7 +33,7 @@ Règles :
 | 8  | Namespace `clornichon.*` (alias)                  | 3   | communauté | TODO | décision à prendre ; reco : garder `scenari.*`, l'expliquer dans le README |
 | 9  | Hooks globaux + before-all / after-all            | 4   | les deux   | TODO | |
 | 10 | API de datatable                                  | 4   | communauté | TODO | |
-| 11 | Niveau `Rule` dans le rapport et l'arbre kaocha   | 4   | communauté | TODO | |
+| 11 | Niveau `Rule` dans le rapport et l'arbre kaocha   | 4   | communauté | EN COURS | codé, 66 tests verts ; reste la mesure Electre |
 | R7 | Release 0.1.9 (lot 4)                             | 4   | les deux   | TODO | une release par item si l'un d'eux traîne |
 
 Ordre proposé : 11 (le plus petit, rien ne change dans l'API), 10, puis 9 (le seul qui
@@ -101,7 +101,7 @@ Non fait (YAGNI) : conversion ligne → entité typée — c'est un `map` + `upd
 Tests : chaque fonction, et le squelette généré d'un step manquant inchangé.
 Doc : section datatable de `doc/step-expressions.md`.
 
-### 11. Niveau `Rule`
+### 11. Niveau `Rule` — EN COURS
 Le parser garde les `Rule` dans le GherkinDocument, mais les pickles les aplatissent :
 seule la description de la règle remonte (`ast-nodes`, préfixée à celle du scénario).
 
@@ -117,6 +117,18 @@ Proposition :
 
 Tests : feature avec et sans règle, deux règles, outline dans une règle, `--focus` sur
 une règle. Doc : `doc/feature-structure.md` (la section qui dit que Rule est aplatie).
+
+Fait : chaque scénario porte `:rule` (`:id`, `:name`, `:annotations`, `:description`) ;
+son `:description` n'est plus que la sienne (changement noté au CHANGELOG). Kaocha :
+groupe `:kaocha.type/scenari-rule`, id `:ns.feature.rule/nom`, alias `:nom` ; les ids
+des scénarios sont calculés avant le regroupement, donc inchangés. `selected-features`
+(scenari-doc) aplatit les règles : dry-run, slowest-steps, messages et doc HTML lisent
+tous par là. `--tags` saute une règle vide. Console et `--doc-html` : `Rule : <nom>`,
+tags et description une fois au-dessus des scénarios.
+Non fait : indentation des scénarios sous la règle (le reporter n'a pas d'état de
+profondeur), `Rule` dans la table des matières HTML.
+Reste avant `FAIT` : mesurer Electre (le coût attendu est nul : un regroupement au
+chargement, un événement par règle).
 
 ## Hors périmètre (YAGNI)
 Retry/rerun, stop-on-failure (voir d'abord si le `--fail-fast` de kaocha suffit),

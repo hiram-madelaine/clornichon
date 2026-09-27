@@ -104,6 +104,15 @@
     (println (utils/color-str :grey "________________________"))
     (println)))
 
+(defmethod t/report :begin-rule [{{:keys [name annotations description]} :rule}]
+  (t/with-test-out
+    (when-let [tags (tags-str annotations)]
+      (println tags))
+    (println (utils/color-str [:bold :white] "Rule : " name))
+    (when-let [desc (description-str description "  ")]
+      (println desc))
+    (println)))
+
 (defmethod t/report :begin-scenario [{:keys [scenario]}]
   (t/with-test-out
     (t/inc-report-counter :test)
@@ -168,7 +177,9 @@
                          :feature     feature
                          :annotations annotations
                          :description description})
-           (doseq [scenario scenarios]
+           (doseq [[previous scenario] (map vector (cons nil scenarios) scenarios)]
+             (when (and (:rule scenario) (not= (:rule previous) (:rule scenario)))
+               (t/do-report {:type :begin-rule, :rule (:rule scenario)}))
              (t/do-report {:type :begin-scenario, :scenario scenario})
              (let [scenario-result
                    (run-hooks

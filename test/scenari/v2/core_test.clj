@@ -186,9 +186,11 @@
           "the feature background comes first, then the rule's own"))))
 
 (t/deftest rule-description-test
-  (t/testing "a Rule's description is prepended to each of its scenarios"
+  (t/testing "a scenario carries its Rule - name, tags, description - and keeps
+  its own description: the report prints the rule's once, above its scenarios"
     (let [scenarios (:scenarios (v2/->feature-ast
                                  (str "Feature: f\n"
+                                      "@slow\n"
                                       "Rule: r\n"
                                       "  ce que la regle verifie\n"
                                       "  Scenario: s1\n"
@@ -197,27 +199,27 @@
                                       "  Scenario: s2\n"
                                       "  When y\n")
                                  {} *ns*))]
-      (is (= ["ce que la regle verifie\nsa propre narration"
-              "ce que la regle verifie"]
-             (map :description scenarios))
-          "the rule's lines come first, the scenario's own follow")))
+      (is (= ["sa propre narration" nil] (map :description scenarios)))
+      (is (= [{:name "r" :annotations #{"slow"} :description "ce que la regle verifie"}]
+             (distinct (map #(dissoc (:rule %) :id) scenarios))))
+      (is (apply = (map (comp :id :rule) scenarios)) "one rule, one id to group by")))
 
-  (t/testing "a Rule without description leaves the scenario's own untouched"
+  (t/testing "a scenario outside any rule has no :rule"
     (let [scenarios (:scenarios (v2/->feature-ast
-                                 (str "Feature: f\nRule: r\n"
-                                      "  Scenario: s\n  sa narration\n  When x\n")
+                                 (str "Feature: f\n  Scenario: s0\n  When w\n"
+                                      "Rule: r\n  Scenario: s\n  When x\n")
                                  {} *ns*))]
-      (is (= ["sa narration"] (map :description scenarios)))))
+      (is (= [nil "r"] (map (comp :name :rule) scenarios)))))
 
-  (t/testing "a Rule description follows its scenarios through outline expansion.
-  Placeholders are not substituted there: per the spec they are replaced in the
+  (t/testing "the Rule follows its scenarios through outline expansion.
+  Placeholders are not substituted in it: per the spec they are replaced in the
   steps, their arguments and the scenario name, not in free description text."
     (let [scenarios (:scenarios (v2/->feature-ast
                                  (str "Feature: f\nRule: r\n  cas <x>\n"
                                       "  Scenario Outline: s\n  When y\n"
                                       "  Examples:\n  | x |\n  | 1 |\n  | 2 |\n")
                                  {} *ns*))]
-      (is (= ["cas <x>" "cas <x>"] (map :description scenarios))))))
+      (is (= ["cas <x>" "cas <x>"] (map (comp :description :rule) scenarios))))))
 
 (defn- surviving-scenarios
   "[feature scenario] pairs left after kaocha's filter marked the rest ::skip."

@@ -122,27 +122,34 @@
 (defn- step-nodes [steps]
   (into {} (map (fn [s] [(.getId s) {:sentence-keyword (keyword-types (opt (.getKeywordType s)) :and)}])) steps))
 
+(defn- tag-names [tags] (into #{} (map #(subs (.getName %) 1)) tags))
+
 (defn- ast-nodes
   "astNodeId -> what a pickle drops on its way out of the compiler: a step's own
-  keyword, and a scenario's description prefixed by its Rule's, which is context
-  for every scenario the rule groups."
-  [children rule-description]
+  keyword, a scenario's description, and the Rule that groups it - the pickle
+  keeps the rule's tags and background, not the rule itself."
+  [children rule]
   (into {}
         (mapcat (fn [child]
                   (concat
                    (some-> (opt (.getBackground child)) .getSteps step-nodes)
                    (when-let [sc (opt (.getScenario child))]
-                     (cons [(.getId sc) {:description (some->> [rule-description (dedent (.getDescription sc))]
-                                                               (remove nil?) (seq) (string/join "\n"))}]
+                     (cons [(.getId sc) (cond-> {:description (dedent (.getDescription sc))}
+                                          rule (assoc :rule rule))]
                            (step-nodes (.getSteps sc)))))))
         children))
+
+(defn- rule-map [rule]
+  (cond-> {:id (.getId rule) :name (.getName rule)}
+    (seq (.getTags rule))              (assoc :annotations (tag-names (.getTags rule)))
+    (dedent (.getDescription rule))    (assoc :description (dedent (.getDescription rule)))))
 
 (defn- feature-nodes [feature]
   (let [children (.getChildren feature)]
     (into (ast-nodes children nil)
           (mapcat (fn [child]
                     (when-let [rule (opt (.getRule child))]
-                      (ast-nodes (.getChildren rule) (dedent (.getDescription rule))))))
+                      (ast-nodes (.getChildren rule) (rule-map rule)))))
           children)))
 
 (defn- check-empty-examples!
@@ -159,8 +166,6 @@
       (throw (ex-info (str "Examples table has no row, scenario " (.getName sc)
                            " would expand to nothing")
                       {:source source :scenario (.getName sc)})))))
-
-(defn- tag-names [tags] (into #{} (map #(subs (.getName %) 1)) tags))
 
 (defn pickle-step->map [ast order step ns-feature]
   (let [sentence (.getText step)
@@ -207,7 +212,8 @@
          ast     (if feature (feature-nodes feature) {})
          ->hooks (fn [fns] (mapv ->hook fns))
          scenarios
-         (for [pickle (keep #(opt (.getPickle %)) envs)]
+         (for [pickle (keep #(opt (.getPickle %)) envs)
+               :let [{:keys [description rule]} (some ast (.getAstNodeIds pickle))]]
            (cond-> {:id            (.getId pickle)
                     :scenario-name (.getName pickle)
                     :annotations   (tag-names (.getTags pickle))
@@ -217,8 +223,8 @@
                     :steps         (vec (map-indexed
                                          (fn [i step] (pickle-step->map ast i step ns-feature))
                                          (.getSteps pickle)))}
-             (:description (some ast (.getAstNodeIds pickle)))
-             (assoc :description (:description (some ast (.getAstNodeIds pickle))))))]
+             description (assoc :description description)
+             rule        (assoc :rule rule)))]
      (when (empty? scenarios)
        (throw (ex-info (str "Feature has no scenario. Lines whose keyword is not recognized "
                             "are parsed as free description:\n" (some-> feature .getDescription))
