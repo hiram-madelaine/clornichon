@@ -32,7 +32,7 @@ Règles :
 | E1 | Electre passe de scenari `2396ada` à clornichon | 2 | Electre  | EN COURS | suivi par un agent dédié au repo Electre (MR, CI, bumps) |
 | 8  | Namespace `clornichon.*` (alias)                  | 3   | communauté | TODO | décision à prendre ; reco : garder `scenari.*`, l'expliquer dans le README |
 | 9  | Hooks globaux + before-all / after-all            | 4   | les deux   | TODO | |
-| 10 | API de datatable                                  | 4   | communauté | TODO | |
+| 10 | API de datatable                                  | 4   | communauté | FAIT | `scenari.v2.table` ; `diff` reporté |
 | 11 | Niveau `Rule` dans le rapport et l'arbre kaocha   | 4   | communauté | EN COURS | codé, 66 tests verts ; reste la mesure Electre |
 | R7 | Release 0.1.9 (niveau `Rule`)                     | 4   | communauté | FAIT | publiée sur Clojars, tag `v0.1.9` |
 | R8 | Release 0.1.10 (datatables, hooks globaux)        | 4   | les deux   | TODO | |
@@ -84,7 +84,7 @@ Tests : ordre en oignon, tag, after-all malgré un échec, un before-all qui lè
 Doc : `doc/state-and-hooks.md`. Mesure Electre : la découverte ne doit rien coûter par
 scénario (résolue une fois, comme les glues).
 
-### 10. API de datatable
+### 10. API de datatable — FAIT
 Aujourd'hui une table arrive en vecteur de maps (clés = en-têtes en keyword, cellules en
 chaînes). Ça casse deux formes courantes : la table verticale `| nom | valeur |` et la
 liste à une colonne, dont la première ligne est prise pour un en-tête.
@@ -101,6 +101,14 @@ Proposition, sans changer ce que reçoit un step existant :
 Non fait (YAGNI) : conversion ligne → entité typée — c'est un `map` + `update` côté glue.
 Tests : chaque fonction, et le squelette généré d'un step manquant inchangé.
 Doc : section datatable de `doc/step-expressions.md`.
+
+Fait : `argument->params` pose `:scenari/cells` (toutes les lignes, en-tête compris) en
+métadonnée du vecteur de maps ; ce que reçoit un step ne change pas (l'égalité ignore
+la métadonnée). `scenari.v2.table` : `cells` (relit un vecteur de maps fait à la main
+depuis ses clés), `as-list`, `as-map` (lève sur une forme autre ou une clé en double),
+`transpose`. Le rendu console et `--doc-html` partent des cellules : une table d'une
+ligne s'affiche enfin, et l'ordre des colonnes n'est plus tributaire des clés d'une map.
+`diff` reporté : case séparée dans `doc/roadmap.md`, à faire sur demande.
 
 ### 11. Niveau `Rule` — EN COURS
 Le parser garde les `Rule` dans le GherkinDocument, mais les pickles les aplatissent :

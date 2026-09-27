@@ -4,6 +4,7 @@
             [clojure.test :as t]
             [scenari.v2.step :refer [generate-step-fn]]
             [scenari.v2.core :refer [run-step run-hooks]]
+            [scenari.v2.table :as table]
             [scenari.utils :as utils]))
 
 (def ^:dynamic *feature-succeed* nil)
@@ -46,27 +47,24 @@
 
 (defn- table-lines
   "Render a datatable param back to its `| col | col |` gherkin form: pipes grey,
-  headers cyan like the tags, cells yellow like the params in the sentence."
-  ;; ponytail: column order follows the row map's key order, which Clojure keeps
-  ;; for array-maps (up to 8 columns) and not beyond.
-  [rows]
-  ;; max 1 : une colonne dont l'en-tete et toutes les cases sont vides donne une
-  ;; largeur 0, et Formatter refuse le drapeau de justification sans largeur (%-0s)
-  (let [headers (keys (first rows))
-        cell    (fn [row h] (str (get row h "")))
-        widths  (into {} (for [h headers]
-                           [h (apply max (count (name h)) (map #(count (cell % h)) rows))]))
-        pipe    (utils/color-str :grey "|")
+  first row cyan like the tags, cells yellow like the params in the sentence.
+  Rendered from the cells as written, so a one-row table - a key/value pair -
+  prints too."
+  [t]
+  (let [[header & rows :as cells] (table/cells t)
+        ;; max 1 : une colonne dont l'en-tete et toutes les cases sont vides donne une
+        ;; largeur 0, et Formatter refuse le drapeau de justification sans largeur (%-0s)
+        widths (apply map (fn [& col] (apply max 1 (map count col))) cells)
+        pipe   (utils/color-str :grey "|")
         ;; la largeur est calculee sur le texte brut : on colore la case *apres*
         ;; l'avoir padee, sinon les codes ANSI comptent dans le %-Ns
-        pad     (fn [h v] (format (str "%-" (max 1 (widths h)) "s") v))
-        line    (fn [color vals]
-                  (str pipe " "
-                       (string/join (str " " pipe " ")
-                                    (map #(utils/color-str color (pad %1 %2)) headers vals))
-                       " " pipe))]
-    (cons (line :cyan (map name headers))
-          (map (fn [row] (line :yellow (map #(cell row %) headers))) rows))))
+        line   (fn [color vals]
+                 (str pipe " "
+                      (string/join (str " " pipe " ")
+                                   (map #(utils/color-str color (format (str "%-" %1 "s") %2)) widths vals))
+                      " " pipe))]
+    (cons (line :cyan header)
+          (map #(line :yellow %) rows))))
 
 (defn- param-lines
   "The block params of a step - docstring and datatable - as the lines to print

@@ -49,6 +49,32 @@ When I create a product "iphone 6" with properties
   ...)
 ```
 
+### Other table shapes
+
+The first row is not always a header. `scenari.v2.table` reads the same argument other ways -- the vector carries the cells as written in its metadata:
+
+| Function | Table | Gives |
+|---|---|---|
+| `as-list` | one column or one row | `["admin" "reader"]` |
+| `as-map` | two columns, keys first | `{:title "Dune" :isbn "978"}` |
+| `transpose` | headers in the first column | the vector of maps it would give with its headers on top |
+| `cells` | any | `[["title" "Dune"] ["isbn" "978"]]`, rows of strings |
+
+```gherkin
+Given a book
+  | title | Dune |
+  | isbn  | 978  |
+```
+
+```clojure
+(require '[scenari.v2.table :as table])
+
+(defgiven "a book" [state t]
+  (assoc state :book (table/as-map t)))
+```
+
+`as-list` and `as-map` throw on a table of another shape, and `as-map` on a key written twice.
+
 ## Missing steps
 
 Running a step that matches no glue prints a skeleton with the right expression. Quote the data in the sentence (`"iphone 6"`) and it becomes a `{string}`:

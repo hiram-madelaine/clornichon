@@ -5,7 +5,8 @@ Gaps against Cucumber, roughly by value/effort.
 ## Step expressions
 
 * [x] custom parameter types: `define-parameter-type!`
-* [ ] a datatable API beyond a vector of string maps: lists, transpose, diff, row-to-entity conversion
+* [x] a datatable API beyond a vector of string maps: `scenari.v2.table` -- `as-list`, `as-map`, `transpose`, `cells`
+* [ ] a table diff, to compare an expected table with actual data in a `Then`
 
 ## Execution
 
