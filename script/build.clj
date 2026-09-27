@@ -24,6 +24,10 @@
                 :version   version
                 :basis     basis
                 :src-dirs  ["src"]
+                :pom-data  [[:licenses
+                             [:license
+                              [:name "MIT License"]
+                              [:url "https://opensource.org/licenses/MIT"]]]]
                 :scm       {:connection          "scm:git:git://github.com:hiram-madelaine/clornichon.git"
                             :developerConnection "scm:git:ssh://github.com:hiram-madelaine/clornichon.git"
                             :url                 "https://github.com/hiram-madelaine/clornichon"
