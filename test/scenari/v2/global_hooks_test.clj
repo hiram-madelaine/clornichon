@@ -1,5 +1,6 @@
 (ns scenari.v2.global-hooks-test
   (:require [clojure.test :as t :refer [deftest testing is]]
+            [kaocha.result]
             [kaocha.testable :as testable]
             [kaocha.type.scenari]
             [scenari.v2.core :as v2]
@@ -132,3 +133,159 @@ Feature: global hooks
         (binding [t/*test-out* (java.io.StringWriter.)]
           (testable/-run suite {})))
       (is (= 1 @lookups)))))
+
+;; ------------------------
+;;    A HOOK THAT THROWS
+;; ------------------------
+
+(v2/deffeature two-scenarios-feature
+  "Feature: two scenarios
+  Scenario: first
+      Then My initial state contains foo
+  Scenario: second
+      Then My initial state contains foo"
+  {:default-scenario-state {:foo 1}})
+
+(defn- boom
+  "A hook that records k, then throws - only where `throws?` holds for its
+  context, if given."
+  ([k] (boom k (constantly true)))
+  ([k throws?]
+   (fn [& [ctx]]
+     (swap! calls conj k)
+     (when (throws? ctx)
+       (throw (ex-info (str "boom " (name k)) {}))))))
+
+(def ^:private first? #(= "first" (:scenario-name %)))
+
+(defn- hook [sym k m f]
+  [sym (merge {:scenari/hook k :arglists '([ctx])} m) f])
+
+(defn- first-scenario []
+  (-> #'two-scenarios-feature meta :scenari/feature-ast :scenarios first))
+
+(deftest hook-that-throws-test
+  (testing "a before-scenario that throws fails its scenario, whose steps stay
+  pending; the after hooks run, and so does the next scenario"
+    (with-global-hooks [(hook 'before :before-scenario {} (boom :before first?))
+                        (hook 'after :after-scenario {} (record :after))]
+      #(let [[{:keys [status scenarios]}] (v2/run-features #'two-scenarios-feature)]
+         (is (= :fail status))
+         (is (= [:fail :success] (map :status scenarios)))
+         (is (= [[:pending] [:success]] (map (fn [s] (map :status (:steps s))) scenarios)))
+         (is (= ["boom before" nil] (map (comp ex-message :exception) scenarios)))
+         (is (= [:before [:after :fail] :before [:after :success]]
+                (map (fn [x] (if (vector? x) [(first x) (:status (second x))] x)) @calls))))))
+
+  (testing "an after hook that throws fails a scenario whose steps passed, and
+  does not skip the after hooks that follow"
+    (with-global-hooks [(hook 'after-1 :after-scenario {:line 1} (boom :after-1))
+                        (hook 'after-2 :after-scenario {:line 2} (boom :after-2 (constantly false)))]
+      #(let [scenario (v2/run-scenario (first-scenario))]
+         (is (= :fail (:status scenario)))
+         (is (= [:success] (map :status (:steps scenario))))
+         (is (= "boom after-1" (ex-message (:exception scenario))))
+         (is (= [:after-1 :after-2] @calls)))))
+
+  (testing "the first exception comes up, and carries the others: the cause is
+  not lost to what the teardown throws after it"
+    (with-global-hooks [(hook 'before :before-scenario {} (boom :before))
+                        (hook 'after :after-scenario {} (boom :after))]
+      #(let [e (:exception (v2/run-scenario (first-scenario)))]
+         (is (= "boom before" (ex-message e)))
+         (is (= ["boom after"] (map ex-message (.getSuppressed ^Throwable e)))))))
+
+  (testing "the same exception twice - a failed delay throws its one instance
+  again - is not a self-suppression"
+    (let [e (ex-info "same" {})]
+      (with-global-hooks [(hook 'before :before-scenario {} (fn [_] (throw e)))
+                          (hook 'after :after-scenario {} (fn [_] (throw e)))]
+        #(is (identical? e (:exception (v2/run-scenario (first-scenario))))))))
+
+  (testing "a before-feature that throws fails the scenarios of its feature,
+  without running them, and the next feature runs"
+    (with-global-hooks [(hook 'before :before-feature {} (boom :before (fn [ctx] (= "two scenarios" (:feature ctx)))))
+                        (hook 'before-scenario :before-scenario {} (fn [_] (swap! calls conj :scenario)))]
+      #(let [[failed passed] (v2/run-features #'two-scenarios-feature #'global-hooks-feature)]
+         (is (= [:fail :success] (map :status [failed passed])))
+         (is (= [:fail :fail] (map :status (:scenarios failed))))
+         (is (= "boom before" (ex-message (:exception failed))))
+         ;; one before-feature per feature, and the one scenario that ran
+         (is (= [:before :before :scenario] (filter #{:before :scenario} @calls))))))
+
+  (testing "run-hooks still throws what a hook threw, for who calls it"
+    (is (thrown-with-msg? clojure.lang.ExceptionInfo #"boom after"
+                          (v2/run-hooks {:post-run [{:ref (boom :after)}]} (constantly :ran))))))
+
+(deftest hook-that-throws-in-clojure-test-runner-test
+  (testing "the clojure.test runner reports the scenario failed, its steps
+  pending, and runs the next one"
+    (with-global-hooks [(hook 'before :before-scenario {} (boom :before first?))]
+      #(let [events (atom [])]
+         (binding [t/report (fn [m] (swap! events conj m))]
+           (sc-test/run-features #'two-scenarios-feature))
+         (is (= [:hook-failed :scenario-failed :scenario-succeed]
+                (filter #{:hook-failed :scenario-failed :scenario-succeed} (map :type @events))))
+         (is (= [:pending :success]
+                (map (comp :status :step) (filter (comp #{:begin-step} :type) @events))))))))
+
+(defn- run-kaocha
+  "The scenari suite narrowed to these features, run by kaocha without a word:
+  [result events]."
+  [& feature-ids]
+  (let [suite  (-> (testable/load {:kaocha.testable/type           :kaocha.type/scenari
+                                   :kaocha.testable/id             :scenario
+                                   :kaocha/source-paths            ["src"]
+                                   :kaocha/test-paths              ["test/scenari/v2"]
+                                   :kaocha.type.scenari/glue-paths ["test/scenari/v2"]})
+                   (update :kaocha.test-plan/tests
+                           (partial filterv (comp (set feature-ids) :kaocha.testable/id))))
+        events (atom [])]
+    (binding [t/report (fn [m] (swap! events conj m))]
+      [(testable/-run suite {}) @events])))
+
+(defn- failures
+  "What kaocha counts: the leaves of the result, each with its failures."
+  [result]
+  (->> (tree-seq :kaocha.result/tests :kaocha.result/tests result)
+       (remove :kaocha.result/tests)
+       (map (juxt (comp name :kaocha.testable/id) :kaocha.result/fail))))
+
+(defn- hook-failures [events]
+  (->> events
+       (filter #(and (= :fail (:type %)) (:kaocha.result/exception %)))
+       (map (comp ex-message :actual))))
+
+(deftest hook-that-throws-in-kaocha-test
+  (testing "a before-scenario that throws is one failed scenario, not the end
+  of the run: the next scenario runs, and the failure is one kaocha reads"
+    (with-global-hooks [(hook 'before :before-scenario {} (boom :before first?))]
+      #(let [[result events] (run-kaocha ::two-scenarios-feature)]
+         (is (= [["first" 1] ["second" 0]] (failures result)))
+         (is (= ["boom before"] (hook-failures events))))))
+
+  (testing "a before-feature that throws fails each scenario of its feature,
+  and the next feature runs"
+    (with-global-hooks [(hook 'before :before-feature {} (boom :before (fn [ctx] (= "two scenarios" (:feature ctx)))))]
+      #(let [[result events] (run-kaocha ::two-scenarios-feature ::global-hooks-feature)]
+         (is (= #{["first" 1] ["second" 1] ["s" 0]} (set (failures result))))
+         (is (= ["boom before" "boom before"] (hook-failures events))))))
+
+  (testing "an after-feature that throws fails the run and keeps the results of
+  the scenarios, which passed"
+    (with-global-hooks [(hook 'after :after-feature {} (boom :after))]
+      #(let [[result events] (run-kaocha ::two-scenarios-feature)]
+         (is (= [["first" 0] ["second" 0] ["after-feature" 1]] (failures result)))
+         (is (= ["boom after"] (hook-failures events))))))
+
+  (testing "an after-all that throws fails the run and keeps its results"
+    (with-global-hooks [(hook 'stop :after-all {} (boom :after-all))]
+      #(let [[result events] (run-kaocha ::two-scenarios-feature)]
+         (is (= [["first" 0] ["second" 0] ["after-all" 1]] (failures result)))
+         (is (kaocha.result/failed? result))
+         (is (= ["boom after-all"] (hook-failures events))))))
+
+  (testing "a before-all that throws still stops the run"
+    (with-global-hooks [(hook 'start :before-all {} (boom :before-all))]
+      #(is (thrown-with-msg? clojure.lang.ExceptionInfo #"boom before-all"
+                             (run-kaocha ::two-scenarios-feature))))))

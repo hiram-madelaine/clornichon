@@ -3,6 +3,26 @@ All notable changes to this project will be documented in this file. This change
 
 # [Unreleased] #
 
+## Fixed ##
+
+A hook that throws fails what it wraps instead of ending the Kaocha run. The
+run stopped there, without summary, `junit.xml` or report; now a scenario hook
+fails its scenario, a `:pre-run` / `:before-feature` fails the scenarios of its
+feature, and the next one runs. A `:post-run` / `:after-feature` or an
+`:after-all` that throws fails the run and keeps the results. A `:before-all`
+that throws still stops the run. See `doc/state-and-hooks.md`.
+
+Every `:post-*` / `after` hook runs, whatever the ones before it threw: the
+first to throw used to skip the others. When several hooks throw, the first
+exception is reported and carries the others as suppressed, where the last one
+used to replace the cause.
+
+## Changed ##
+
+`scenari.v2.core/run-feature` and `run-scenario` no longer throw what a hook
+threw: the scenario, or the feature, is `:fail` and holds it under `:exception`.
+`run-hooks` still throws.
+
 # [0.1.10] - 2026-09-27 #
 
 ## Added ##

@@ -12,6 +12,7 @@
             [clojure.string :as str]
             [kaocha.plugin :refer [defplugin]]
             [kaocha.plugin.scenari-doc :as doc]
+            [kaocha.result :as result]
             [scenari.v2.glue :as glue])
   (:import (io.cucumber.cucumberexpressions CucumberExpression)
            (io.cucumber.messages ProtocolVersion)
@@ -160,7 +161,10 @@
      [{:testRunStarted {:timestamp (timestamp started-at)}}]
      (map test-case scenarios)
      (mapcat test-case-events scenarios)
-     [{:testRunFinished {:success   (every? #(= :success (:status %)) scenarios)
+     ;; failed? : ce qu'un hook :after-feature ou :after-all a levé n'est l'échec
+     ;; d'aucun scénario
+     [{:testRunFinished {:success   (and (every? #(= :success (:status %)) scenarios)
+                                         (not (result/failed? result)))
                          :timestamp (timestamp finished-at)}}])))
 
 (defn write! [target envelopes]

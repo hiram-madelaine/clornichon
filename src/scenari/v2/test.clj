@@ -3,7 +3,7 @@
             [clojure.string :as string]
             [clojure.test :as t]
             [scenari.v2.step :refer [generate-step-fn]]
-            [scenari.v2.core :refer [run-step run-hooks with-global-hooks]]
+            [scenari.v2.core :refer [run-step run-hooks try-hooks with-global-hooks]]
             [scenari.v2.table :as table]
             [scenari.utils :as utils]))
 
@@ -144,6 +144,11 @@
     (println (utils/color-str :red "  Step failed"))
     (some->> exception stacktrace/print-stack-trace)))
 
+(defmethod t/report :hook-failed [{:keys [exception]}]
+  (t/with-test-out
+    (println (utils/color-str :red "  Hook failed"))
+    (some->> exception stacktrace/print-stack-trace)))
+
 (defmethod t/report :scenario-succeed [{:keys [scenario]}]
   (t/with-test-out
     (t/inc-report-counter :pass)
@@ -179,8 +184,8 @@
              (when (and (:rule scenario) (not= (:rule previous) (:rule scenario)))
                (t/do-report {:type :begin-rule, :rule (:rule scenario)}))
              (t/do-report {:type :begin-scenario, :scenario scenario})
-             (let [scenario-result
-                   (run-hooks
+             (let [[steps-passed? hook-exception]
+                   (try-hooks
                     scenario
                     (fn []
                       (loop [state (:default-state scenario)
@@ -201,7 +206,14 @@
                                 (t/do-report {:type :step-succeed, :state (:output-state step-result)})
                                 (recur (:output-state step-result) others)))))))
                     #(if % :success :fail))]
-               (if scenario-result
+               ;; a hook that throws fails its scenario, and the next one runs
+               (when hook-exception
+                 ;; nil: a :pre hook threw, the steps never ran
+                 (when (nil? steps-passed?)
+                   (doseq [pending (:steps scenario)]
+                     (t/do-report {:type :begin-step, :step (assoc pending :status :pending)})))
+                 (t/do-report {:type :hook-failed, :exception hook-exception}))
+               (if (and steps-passed? (not hook-exception))
                  (t/do-report {:type :scenario-succeed, :scenario scenario})
                  (t/do-report {:type :scenario-failed, :scenario scenario}))))
            (t/do-report {:type :end-feature, :feature feature :succeed? @*feature-succeed*})))))))
