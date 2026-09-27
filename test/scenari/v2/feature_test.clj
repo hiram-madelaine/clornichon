@@ -8,6 +8,7 @@
             [kaocha.repl :as krepl]
             [kaocha.report]
             [kaocha.plugin.filter :as kfilter]
+            [kaocha.plugin.randomize :as randomize]
             [kaocha.plugin.scenari-doc :as sdoc]
             [kaocha.plugin.scenari-tags :as stags]
             [kaocha.testable :as testable]
@@ -411,6 +412,80 @@ Feature: mixed tags
                (map (comp :name :rule) (filter #(= :begin-rule (:type %)) @events))))
         (is (= 4 (count (filter #(= :kaocha.type/scenari-scenario (::testable/type %))
                                 (testable/test-seq result)))))))))
+
+(defn- rule-events
+  "What tells where a rule starts and ends: [type name] of the rules and the
+  scenarios reported, in order."
+  [events]
+  (keep (fn [{:keys [type rule scenario]}]
+          (case type
+            (:begin-rule :end-rule) [type (:name rule)]
+            :begin-scenario         [type (string/trim (:scenario-name scenario))]
+            nil))
+        events))
+
+(deftest end-of-rule-test
+  (testing "kaocha runs the children of a feature in the order its randomize
+  plugin gave them: a scenario of no rule can come after one, and would read as
+  part of it if nothing told where the rule ends"
+    (let [events (atom [])]
+      (binding [t/report #(swap! events conj %)]
+        (testable/-run (update (loaded-feature ::rules-feature) :kaocha.test-plan/tests reverse) {}))
+      (is (= [[:begin-rule "second rule"]
+              [:begin-scenario "in the second rule"]
+              [:end-rule "second rule"]
+              [:begin-rule "first rule"]
+              [:begin-scenario "in the first rule"]
+              [:begin-scenario "also in the first rule"]
+              [:end-rule "first rule"]
+              [:begin-scenario "before any rule"]]
+             (rule-events @events)))))
+
+  (testing "the clojure.test runner ends each rule too"
+    (let [events (atom [])]
+      (binding [t/report #(swap! events conj %)]
+        (sc-test/run-features #'rules-feature))
+      (is (= [[:begin-scenario "before any rule"]
+              [:begin-rule "first rule"]
+              [:begin-scenario "in the first rule"]
+              [:begin-scenario "also in the first rule"]
+              [:end-rule "first rule"]
+              [:begin-rule "second rule"]
+              [:begin-scenario "in the second rule"]
+              [:end-rule "second rule"]]
+             (rule-events @events))))))
+
+(deftest doc-in-file-order-test
+  (let [plan     {:kaocha.test-plan/tests [{:kaocha.test-plan/tests (loaded-features)}]}
+        shuffled (fn [seed] (randomize/rng-sort (randomize/rng seed) plan))
+        html     #(sdoc/document (sdoc/selected-features %))
+        titles   (fn [html] (map second (re-seq #"<h[23]>(?:Rule : )?([^<]+?) ?<" html)))]
+    (testing "the HTML document is the same whatever order kaocha's randomize
+    plugin, on by default, gave the test-plan"
+      (is (= (html plan) (html (shuffled 1)) (html (shuffled 2))))
+      (is (not= (sdoc/selected-features (shuffled 1)) (sdoc/selected-features (shuffled 2)))
+          "the two seeds do give two orders"))
+
+    (testing "it follows the files: the scenarios of a feature in its order,
+    each rule above its own"
+      (is (= ["rules" "before any rule" "first rule" "in the first rule" "also in the first rule"
+              "second rule" "in the second rule"]
+             (->> (titles (html (shuffled 1)))
+                  (drop-while #(not= "rules" %))
+                  (take 7)))))
+
+    (testing "and the features of a namespace by their line"
+      (let [in-doc (->> (re-seq #"<section class=\"feature[^\"]*\" id=\"([^\"]+)\"" (html (shuffled 1)))
+                        (map (comp keyword second))
+                        (filter #(= "scenari.v2.feature-test" (namespace %))))
+            line   (into {} (map (juxt ::testable/id (comp :line ::testable/meta)) (loaded-features)))]
+        (is (< 3 (count in-doc)))
+        (is (apply < (map line in-doc)))))
+
+    (testing "the other readers of the tree keep the order of the run: the
+    cucumber-messages stream is in the order things happened"
+      (is (not= (map ::testable/id (sdoc/selected-features (shuffled 1)))
+                (map ::testable/id (sdoc/selected-features (shuffled 2))))))))
 
 (deftest rule-in-clojure-test-runner-test
   (testing "the clojure.test runner prints the rule, its tags and its

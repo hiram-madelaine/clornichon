@@ -63,6 +63,8 @@ Declare a suite of type `:kaocha.type/scenari` in `tests.edn`:
 
 The namespaces under the `glue-paths` are loaded first, then those under the `test-paths`: a feature finds its glues without requiring them. The `glue-paths` can sit under the `test-paths`, as here, or anywhere else.
 
+Kaocha runs them in a random order by default, the scenarios of a `Rule` together; `--no-randomize` follows the files. The console prints `Rule : <name>` above the scenarios of a rule and `End of rule : <name>` under them, since the scenario that runs next may belong to no rule.
+
 Each feature, each `Rule` and each scenario is a node of the Kaocha tree. A scenario's id is qualified by its feature, `:my.ns.my-feature/scenario-name`, whether it sits in a rule or not; the bare name stays an alias for `--focus`. A rule's id is `:my.ns.my-feature.rule/rule-name`, and `--focus rule-name` runs its scenarios alone.
 
 ```clojure
@@ -145,3 +147,5 @@ A step failing on an `is` carries no detail in the stream -- just `A clojure.tes
 bin/kaocha --tags @smoke --doc-html target/features.html     # runs nothing
 bin/kaocha --doc-report target/report.html                   # runs, then annotates each step with its result
 ```
+
+The document follows the files, not the run: the features by namespace then line, the scenarios in the order of their feature. Kaocha's `randomize` plugin, on by default, does not change it: two runs write the same document.

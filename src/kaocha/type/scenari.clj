@@ -134,8 +134,13 @@
                                                 (zipmap (map keyword annotations) (repeat true)))
                  ::testable/desc         feature
                  ;; numbered before grouping: a scenario id stays what it was
-                 ;; before rules had a level of their own
-                 :kaocha.test-plan/tests (group-rules feature-id (with-unique-ids (map #(scenario->testable feature-id %) scenarios)))
+                 ;; before rules had a level of their own. ::rank is the place
+                 ;; of the scenario in its file, which kaocha's randomize
+                 ;; plugin does not leave in the order of the tree
+                 :kaocha.test-plan/tests (->> scenarios
+                                              (map-indexed #(assoc (scenario->testable feature-id %2) ::rank %1))
+                                              with-unique-ids
+                                              (group-rules feature-id))
                  ::annotations           annotations
                  ::description           description
                  ::messages              messages
@@ -210,6 +215,8 @@
 (defmethod testable/-run :kaocha.type/scenari-rule [testable test-plan]
   (t/do-report {:type :begin-rule :rule (:rule testable)})
   (let [results (testable/run-testables (:kaocha.test-plan/tests testable) test-plan)]
+    ;; the scenario kaocha runs next may be one of no rule
+    (t/do-report {:type :end-rule :rule (:rule testable)})
     (-> testable
         (dissoc :kaocha.test-plan/tests)
         (assoc :kaocha.result/tests results))))

@@ -28,6 +28,12 @@
                       {:type :table :val [{:size "6" :weight "2"}
                                           {:size "12" :weight "3"}]}]})
 
+(deftest end-rule-rendering-test
+  (testing "a rule is closed by a line that names it"
+    (binding [output/*colored-output* false]
+      (is (= "End of rule : a cart can be emptied\n\n"
+             (render {:type :end-rule :rule {:name "a cart can be emptied"}}))))))
+
 (deftest begin-step-rendering-test
   (testing "without colors: keyword, sentence, glue source and the datatable, aligned"
     (binding [output/*colored-output* false]

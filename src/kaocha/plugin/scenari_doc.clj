@@ -186,14 +186,27 @@ nav li.fail>a{color:#b3261e}
            (str ", " (count failed) " failed"))
          ".")))
 
+(defn- in-file-order
+  "The features as their files give them: by namespace then line, the scenarios
+  by their rank in the feature. The tree is in the order kaocha's randomize
+  plugin, on by default, gave it - the order of the run, which the other
+  readers of `selected-features` want, the cucumber-messages stream first."
+  [features]
+  (->> features
+       (sort-by (juxt #(some-> (::testable/id %) namespace)
+                      #(:line (::testable/meta %) 0)
+                      ::testable/id))
+       (map #(update % ::scenarios (partial sort-by :kaocha.type.scenari/rank)))))
+
 (defn document [features]
-  (str "<!DOCTYPE html><html lang=\"en\"><head><meta charset=\"utf-8\">"
-       "<title>Features</title><style>" css "</style></head><body>"
-       "<h1>Features</h1>"
-       "<p>" (counts features) "</p>"
-       (toc-html features)
-       (apply str (map feature-html features))
-       "</body></html>"))
+  (let [features (in-file-order features)]
+    (str "<!DOCTYPE html><html lang=\"en\"><head><meta charset=\"utf-8\">"
+         "<title>Features</title><style>" css "</style></head><body>"
+         "<h1>Features</h1>"
+         "<p>" (counts features) "</p>"
+         (toc-html features)
+         (apply str (map feature-html features))
+         "</body></html>")))
 
 (defn- write! [target features]
   (io/make-parents target)
