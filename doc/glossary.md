@@ -14,7 +14,7 @@ The words of Gherkin, and what each becomes in Clornichon.
 * **Step expression**: the sentence matcher of a glue -- a cucumber expression (`"I add {int} items"`) or a regex (`#"^I add (\d+) items$"`). See [Step expressions](step-expressions.md).
 * **Parameter type**: a token of a cucumber expression, `{int}` `{float}` `{word}` `{string}` `{number}`, which captures part of the sentence and converts it.
 * **State**: the value a step returns, received as first argument by the next step. Starts as `{}` or `:default-scenario-state`. See [State and hooks](state-and-hooks.md).
-* **Hook**: a function run before or after a feature (`:pre-run`, `:post-run`) or each of its scenarios (`:pre-scenario-run`, `:post-scenario-run`).
+* **Hook**: a function run before or after a feature (`:pre-run`, `:post-run`) or each of its scenarios (`:pre-scenario-run`, `:post-scenario-run`). Declared with one argument, it receives the name and tags of what it wraps, and a scenario's `:status` after it; `:scenari/tags` on its var restricts it to the matching scenarios. See [State and hooks](state-and-hooks.md#hooks).
 * **Tag**: an `@annotation` on a feature, rule, scenario or examples table. Scenarios inherit the tags above them; `--tags` filters on them.
 * **Datatable**: a `| table |` under a step, passed to its glue as a vector of maps, one per row.
 * **Doc string**: a `"""` or ```` ``` ```` block under a step, passed to its glue as a string.

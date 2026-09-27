@@ -5,6 +5,7 @@
             [scenari.v2.glue :as glue]
             [scenari.v2.step :refer [generate-step-fn]])
   (:import (io.cucumber.gherkin GherkinParser)
+           (io.cucumber.tagexpressions Expression TagExpressionParser)
            (io.cucumber.messages.types Envelope Source SourceMediaType StepKeywordType)
            (java.io File)
            (java.util Optional UUID)
@@ -181,13 +182,26 @@
                                (when glue (glue/step-args glue sentence)))
                          block))))
 
+(defn- ->hook
+  "Un hook tel que run-hooks l'appelle : sa var avec ses métadonnées - `:arglists`
+  dit s'il veut le contexte - et `:scenari/tags` compilée une fois, ici, plutôt
+  qu'à chacun des scénarios qu'il encadre."
+  [f]
+  (let [m (meta f)]
+    (cond-> (assoc m :ref f)
+      (:scenari/tags m)
+      (assoc :tag-expr (try (TagExpressionParser/parse (:scenari/tags m))
+                            (catch Exception e
+                              (throw (ex-info (str "hook " f " : " (.getMessage e))
+                                              {:hook f :tags (:scenari/tags m)} e))))))))
+
 (defn ->feature-ast [source {:keys [pre-run post-run pre-scenario-run post-scenario-run default-scenario-state] :as _options} ns-feature]
   (let [envs    (envelopes source)
         doc     (some #(opt (.getGherkinDocument %)) envs)
         feature (some-> doc .getFeature opt)
         _       (when feature (check-empty-examples! feature source))
         ast     (if feature (feature-nodes feature) {})
-        ->hooks (fn [fns] (map #(assoc (meta %) :ref %) fns))
+        ->hooks (fn [fns] (mapv ->hook fns))
         scenarios
         (for [pickle (keep #(opt (.getPickle %)) envs)]
           (cond-> {:id            (.toString (UUID/randomUUID))
@@ -258,22 +272,49 @@
         steps
         (recur steps output-state others)))))
 
+(defn- call-hook
+  "Un hook qui n'a qu'une arité à un argument reçoit ctx ; tout autre est appelé
+  sans argument, comme avant. L'arité 0 l'emporte : un hook existant en a
+  forcément une, et son arité 1 attend autre chose que ctx - chez Electre,
+  `add-perimetres-contractuels` a `[]` et `[perimetres]`. Un hook marqué
+  `:scenari/tags` ne tourne que si les tags de ctx satisfont l'expression."
+  [{f :ref :keys [arglists ^Expression tag-expr]} ctx]
+  (when (or (nil? tag-expr)
+            ;; les tags sont stockés sans le @, l'expression le veut
+            (.evaluate tag-expr (mapv #(str "@" %) (:annotations ctx))))
+    (if (and (some #(= 1 (count %)) arglists) (not-any? empty? arglists))
+      (f ctx)
+      (f))))
+
 (defn run-hooks
   "Encadre f par les hooks :pre-run et :post-run de x. Le teardown est dans un
   finally : il doit tourner meme si un hook pre-run, la resolution d'un glue ou
-  un report leve - c'est exactement le cas pour lequel il existe."
-  [{:keys [pre-run post-run]} f]
-  (try (run! (fn [{pre-run-fn :ref}] (pre-run-fn)) pre-run)
-       (f)
-       (finally (run! (fn [{post-run-fn :ref}] (post-run-fn)) post-run))))
+  un report leve - c'est exactement le cas pour lequel il existe.
+
+  Un hook à un argument reçoit le nom et les tags de x ; avec ->status, qui tire
+  :success ou :fail du retour de f, les :post-run reçoivent aussi :status -
+  :fail si f a levé."
+  ([x f] (run-hooks x f nil))
+  ([{:keys [pre-run post-run] :as x} f ->status]
+   (let [ctx    (select-keys x [:feature :scenario-name :annotations])
+         status (volatile! (when ->status :fail))]
+     (try (run! #(call-hook % ctx) pre-run)
+          (let [r (f)]
+            (when ->status (vreset! status (->status r)))
+            r)
+          (finally (run! #(call-hook % (cond-> ctx @status (assoc :status @status))) post-run))))))
+
+(defn- steps-status [steps]
+  (if (some #(= :fail (:status %)) steps) :fail :success))
 
 (defn run-scenario [scenario]
   (let [pending-steps (map #(assoc % :status :pending) (:steps scenario))
         result-steps (run-hooks scenario
-                                #(run-steps pending-steps (:default-state scenario) pending-steps))]
+                                #(run-steps pending-steps (:default-state scenario) pending-steps)
+                                steps-status)]
     (-> scenario
         (assoc :steps result-steps)
-        (assoc :status (if (contains? (set (map :status result-steps)) :fail) :fail :success)))))
+        (assoc :status (steps-status result-steps)))))
 
 (defn run-scenarios [scenarios [scenario & others]]
   (if-not scenario

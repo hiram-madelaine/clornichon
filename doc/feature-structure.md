@@ -11,7 +11,8 @@ A feature is represented as a map with the following keys:
  :feature "..."         ; The Feature title
  :description "..."     ; Optional free text between the Feature line and the first keyword
  :annotations #{...}    ; Optional annotations (tags)
- :pre-run [...]         ; Hook functions to execute before feature
+ :pre-run [...]         ; Hooks to execute before the feature
+ :post-run [...]        ; Hooks to execute after the feature
  :status :success/:fail ; Status after execution
 }
 ```
@@ -39,8 +40,8 @@ Each scenario is represented as a map within the `:scenarios` vector:
  :scenario-name "Name"       ; The scenario title
  :annotations #{...}         ; Optional annotations (tags) of the scenario
  :steps [...]                ; Vector of step maps
- :pre-run [...]              ; Functions to run before scenario
- :post-run [...]             ; Functions to run after scenario
+ :pre-run [...]              ; Hooks to run before the scenario
+ :post-run [...]             ; Hooks to run after the scenario
  :default-state {}           ; Initial state for the scenario
  :status :success/:fail/:pending ; Execution status
 }
@@ -61,6 +62,7 @@ Each step within a scenario is represented as a map:
  :input-state {}                            ; State before execution
  :output-state {}                           ; State after execution
  :exception {...}                           ; If step failed
+ :duration-ns 1234567                       ; Time the glue took, once run
 }
 ```
 
@@ -84,6 +86,18 @@ Parameters extracted from steps come in three types:
 
 ;; A doc string opened with a content type (```json) carries it
 {:type :doc-string, :val "{\"a\": 1}", :media-type "json"}
+```
+
+## Hooks
+
+Each hook of `:pre-run` / `:post-run` is the metadata of its var, plus:
+
+```clojure
+{:ref #'user.namespace/clean-db!  ; The hook itself
+ :arglists ([] ...)               ; From the var: a single one-argument arity receives the context
+ :scenari/tags "@db"              ; Optional tag expression, from the var's metadata
+ :tag-expr #object[...]           ; That expression, parsed when the feature is loaded
+}
 ```
 
 ## Glue Metadata

@@ -27,8 +27,9 @@ Règles :
 | 3  | CI GitHub Actions                                 | 1   | communauté | FAIT | 1er run vert sur la PR #1 |
 | R1 | Release 0.1.3                                     | 1   | les deux   | FAIT | publiée sur Clojars, tag `v0.1.3` |
 | 4  | Durées step/scénario + rapport « slowest steps »  | 2   | Electre    | FAIT | 0 surcoût mesurable sur Electre ; 1 glue = ~28 % de la suite |
-| R2 | Release 0.1.4 (`--slowest-steps`)                 | 2   | les deux   | EN COURS | préparée, reste `./release.sh patch` |
-| 5  | Hooks reçoivent le scénario + hooks par tag       | 2   | Electre    | TODO |       |
+| R2 | Release 0.1.4 (`--slowest-steps`)                 | 2   | les deux   | FAIT | publiée sur Clojars, tag `v0.1.4` |
+| E1 | Electre passe de scenari `2396ada` à clornichon 0.1.4 | 2 | Electre  | EN COURS | poussé sur `chore/migration-clornichon-0.1.4` (e1aa04e25e), MR + CI à faire |
+| 5  | Hooks reçoivent le scénario + hooks par tag       | 2   | Electre    | FAIT | arité 0 prioritaire (compat Electre) ; 392/392 verts |
 | 6  | Sortie cucumber-messages (NDJSON)                 | 3   | communauté | TODO |       |
 | 7  | Types de paramètres custom publics                | 3   | communauté | TODO |       |
 | 8  | Namespace `clornichon.*` (alias)                  | 3   | communauté | TODO | décision à prendre |
@@ -80,10 +81,28 @@ Bruit d'environnement de ±6 % (Postgres/Solr), aucun écart attribuable au code
 Prérequis local découvert : le schéma Postgres doit être migré
 (`clojure -M:db-migrator` dans `bo/backend`), `test.sh` ne le fait qu'en CI.
 
-### 5. Hooks
-`run-hooks` (`core.clj:252`) appelle `(pre-run-fn)` sans argument : passer le scénario
-(nom, tags, statut en post-run). Arité 0 conservée pour la compat. Filtre par tag via
-`io.cucumber/tag-expressions` (déjà en dépendance, cf. `scenari_tags.clj`).
+### E1. Migration d'Electre vers 0.1.4 — EN COURS
+`diffusion/backend`, `diffusion/import`, `bo/backend`, `bo/account-domain` : la dep git
+`io.github.hiram-madelaine/scenari` (SHA `2396ada`, sur une branche non mergée du fork)
+devient `io.github.hiram-madelaine/clornichon {:mvn/version "0.1.4"}`.
+`:kaocha.plugin/scenari-slowest-steps` ajouté au `tests.edn` de `diffusion/backend`.
+Vérifié : classpaths identiques hormis la lib (même `tools.logging`, même `java-time`) ;
+`diffusion/backend` `:scenario` 392/392 verts, 92,3 s ; `bo/account-domain` 41 tests verts.
+Constat : les scénarios de `bo/account-domain` (`test/scenario/`) ne tournent jamais — ns
+mal nommés (`scenario_org` au lieu de `scenario.scenario-org`) et `test-utils` introuvable ;
+préexistant, hors migration.
+
+### 5. Hooks — FAIT
+Un hook qui n'a que l'arité 1 reçoit `{:scenario-name :annotations}` (+ `:status` en
+`:post-scenario-run`) ou `{:feature :annotations}` pour une feature ; lu dans les
+`:arglists` de la var. Métadonnée `^{:scenari/tags "@db and not @slow"}` sur la var :
+le hook ne tourne que si les tags matchent, expression parsée au chargement.
+Doc : `doc/state-and-hooks.md`. Tests : `hooks-context-test` (`feature_test.clj`).
+
+Piège trouvé sur Electre : `add-perimetres-contractuels` a `[]` et `[perimetres]` ; la
+première version lui passait le contexte et le run plantait (hugsql). Règle retenue :
+l'arité 0 l'emporte, tout hook existant en a une. Electre `:scenario` : 392/392, 90,8 s.
+Non fait (YAGNI) : `:status` au niveau feature, hooks par step, before-all/after-all.
 
 ### 6. cucumber-messages
 Plugin qui émet des `Envelope` NDJSON (le parser en produit déjà) + mapping des

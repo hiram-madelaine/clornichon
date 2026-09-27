@@ -323,6 +323,8 @@ Clornichon supports several hook points for setup and teardown:
 - Pre-scenario hooks: Run before each scenario
 - Post-scenario hooks: Run after each scenario
 
+A hook can receive the scenario's name, tags and status, and be restricted to some tags: see [State and hooks](state-and-hooks.md#hooks).
+
 ## Conclusion
 
 The Clornichon development workflow provides a structured approach to Behavior-Driven Development in Clojure. By following the pattern of writing features, defining glue code, and executing tests, you can create living documentation that verifies your application's behavior.

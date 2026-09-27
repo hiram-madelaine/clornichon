@@ -123,7 +123,10 @@
                 :annotations (::annotations testable)
                 :description (::description testable)})
   (sc/run-hooks
-   {:pre-run (::pre-run testable) :post-run (::post-run testable)}
+   {:pre-run     (::pre-run testable)
+    :post-run    (::post-run testable)
+    :feature     (:kaocha.testable/desc testable)
+    :annotations (::annotations testable)}
    (fn []
      (let [results (testable/run-testables (:kaocha.test-plan/tests testable) test-plan)
            testable (-> testable

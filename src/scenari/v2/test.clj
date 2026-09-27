@@ -190,7 +190,8 @@
                                 false)
                               (do
                                 (t/do-report {:type :step-succeed, :state (:output-state step-result)})
-                                (recur (:output-state step-result) others))))))))]
+                                (recur (:output-state step-result) others)))))))
+                    #(if % :success :fail))]
                (if scenario-result
                  (t/do-report {:type :scenario-succeed, :scenario scenario})
                  (t/do-report {:type :scenario-failed, :scenario scenario}))))
