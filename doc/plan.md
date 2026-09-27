@@ -31,7 +31,7 @@ Règles :
 |----|---------------------------------------------------|-----|------------|------|-------|
 | E1 | Electre passe de scenari `2396ada` à clornichon | 2 | Electre  | EN COURS | suivi par un agent dédié au repo Electre (MR, CI, bumps) |
 | 8  | Namespace `clornichon.*` (alias)                  | 3   | communauté | TODO | décision à prendre ; reco : garder `scenari.*`, l'expliquer dans le README |
-| 9  | Hooks globaux + before-all / after-all            | 4   | les deux   | TODO | |
+| 9  | Hooks globaux + before-all / after-all            | 4   | les deux   | EN COURS | codé, 79 tests verts ; reste la mesure Electre |
 | 10 | API de datatable                                  | 4   | communauté | FAIT | `scenari.v2.table` ; `diff` reporté |
 | 11 | Niveau `Rule` dans le rapport et l'arbre kaocha   | 4   | communauté | EN COURS | codé, 66 tests verts ; reste la mesure Electre |
 | R7 | Release 0.1.9 (niveau `Rule`)                     | 4   | communauté | FAIT | publiée sur Clojars, tag `v0.1.9` |
@@ -54,7 +54,7 @@ un alias demande de les redéclarer une à une. Reco : garder `scenari.*` (c'est
 rend la migration depuis scenari triviale), une section « Pourquoi `scenari.*` ? » dans
 le README, et passer l'item en `ABANDONNÉ` faute de demande réelle.
 
-### 9. Hooks globaux + before-all / after-all
+### 9. Hooks globaux + before-all / after-all — EN COURS
 Aujourd'hui chaque `deffeature` porte ses hooks dans son map d'options : 250 features =
 250 fois le même `{:pre-scenario-run [#'clean-db!]}`.
 
@@ -83,6 +83,19 @@ namespaces de glue, et vaut pour toutes les features :
 Tests : ordre en oignon, tag, after-all malgré un échec, un before-all qui lève.
 Doc : `doc/state-and-hooks.md`. Mesure Electre : la découverte ne doit rien coûter par
 scénario (résolue une fois, comme les glues).
+
+Fait : `scenari.v2.core/global-hooks` balaie les vars `:scenari/hook` ; une valeur
+inconnue lève en nommant le hook. Pas de cache (un cache sur le nombre de ns ratait
+un ns remplacé et un hook ajouté au REPL) : les hooks sont résolus une fois à l'entrée
+d'un run - `run-suite` sous Kaocha, `run-features` des deux runners - et liés dans
+`*global-hooks*` ; `run-hooks` s'en sert, ou les cherche lui-même hors run. Un balayage
+coûte ~3 ms pour 1 740 vars ici.
+Un before-all qui lève arrête le run comme un `use-fixtures :once` de Kaocha : message,
+code de sortie 1, after-all joué, mais pas de résumé ni de `junit.xml`.
+Limite connue : sous le runner `clojure.test` seul, chaque feature est un `deftest` et
+refait le balayage ; sur une grosse base, préférer Kaocha (c'est déjà le runner
+recommandé).
+Reste avant `FAIT` : mesurer Electre.
 
 ### 10. API de datatable — FAIT
 Aujourd'hui une table arrive en vecteur de maps (clés = en-têtes en keyword, cellules en
