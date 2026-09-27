@@ -110,3 +110,25 @@ Feature: global hooks
       #(do (is (thrown-with-msg? clojure.lang.ExceptionInfo #"no database"
                                  (v2/run-suite (fn [] (swap! calls conj :suite)))))
            (is (= [:after-all] @calls))))))
+
+(deftest global-hooks-looked-up-once-per-run-test
+  (testing "a Kaocha run looks the global hooks up once, not per feature or
+  scenario: a lookup walks every loaded var, which a large suite would pay per
+  scenario. Fails if the binding stops reaching them - a thread pool without
+  bound-fn, a runner path around run-suite."
+    (let [suite    (testable/load {:kaocha.testable/type           :kaocha.type/scenari
+                                   :kaocha.testable/id             :scenario
+                                   :kaocha/source-paths            ["src"]
+                                   :kaocha/test-paths              ["test/scenari/v2"]
+                                   :kaocha.type.scenari/glue-paths ["test/scenari/v2"]})
+          ;; two features, five scenarios, one of them in rules
+          suite    (update suite :kaocha.test-plan/tests
+                           (partial filterv (comp #{::global-hooks-feature
+                                                    :scenari.v2.feature-test/rules-feature}
+                                                  :kaocha.testable/id)))
+          lookups  (atom 0)
+          original v2/global-hooks]
+      (with-redefs [v2/global-hooks (fn [] (swap! lookups inc) (original))]
+        (binding [t/*test-out* (java.io.StringWriter.)]
+          (testable/-run suite {})))
+      (is (= 1 @lookups)))))
