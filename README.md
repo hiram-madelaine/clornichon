@@ -1,5 +1,8 @@
 <p align="center">
-  <img src="clornichon.svg" alt="Clornichon" width="220">
+  <picture>
+    <source media="(prefers-color-scheme: dark)" srcset="doc/img/clornichon-lockup-dark.svg">
+    <img src="doc/img/clornichon-lockup.svg" alt="Clornichon" width="480">
+  </picture>
 </p>
 
 # Clornichon - Gherkin specifications, executed by Clojure
