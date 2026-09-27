@@ -17,7 +17,7 @@ Gaps against Cucumber, roughly by value/effort.
 
 ## Reporting
 
-* [ ] measure step and scenario durations -- nothing is timed today, which also blocks a slowest-steps report
+* [x] measure step durations (`:duration-ns`) and report the slowest glues with `--slowest-steps N`; scenario durations come from kaocha's profiling plugin
 * [ ] cucumber-messages / JSON output, the interchange format the whole ecosystem reads (Allure, Cucumber Reports, CI). The parser already speaks it: a feature is read as `Envelope` messages, only the run needs to emit its own
 * [ ] usage report: which glues ran, which are dead
 * [ ] attachments (screenshots) from a step or a hook

@@ -1,7 +1,7 @@
 # Clornichon — prochaines étapes (communauté + refonte Electre)
 
 ## Contexte
-0.1.2 publié (Clojars + cljdoc, docs, ADR). La roadmap (`doc/roadmap.md`) liste les écarts
+0.1.3 publié (Clojars + cljdoc, docs, ADR, CI). La roadmap (`doc/roadmap.md`) liste les écarts
 avec Cucumber. Electre = le « large production codebase » du README (250+ features,
 3 400 steps, 440 glues) ; son code n'est pas accessible ici, le classement Electre
 s'appuie sur la roadmap et le README (perf = priorité).
@@ -25,8 +25,8 @@ Règles :
 | 1  | Step non résolu → message clair, pas NPE          | 1   | les deux   | FAIT | statut `:fail` gardé ; `:undefined` distinct avec #6 |
 | 2  | Retirer les dépendances inutilisées               | 1   | communauté | FAIT | `tools.namespace` gardé : utilisé |
 | 3  | CI GitHub Actions                                 | 1   | communauté | FAIT | 1er run vert sur la PR #1 |
-| R1 | Release 0.1.3                                     | 1   | les deux   | EN COURS | préparée, reste `./release.sh patch` |
-| 4  | Durées step/scénario + rapport « slowest steps »  | 2   | Electre    | TODO |       |
+| R1 | Release 0.1.3                                     | 1   | les deux   | FAIT | publiée sur Clojars, tag `v0.1.3` |
+| 4  | Durées step/scénario + rapport « slowest steps »  | 2   | Electre    | FAIT | 0 surcoût mesurable sur Electre ; 1 glue = ~28 % de la suite |
 | 5  | Hooks reçoivent le scénario + hooks par tag       | 2   | Electre    | TODO |       |
 | 6  | Sortie cucumber-messages (NDJSON)                 | 3   | communauté | TODO |       |
 | 7  | Types de paramètres custom publics                | 3   | communauté | TODO |       |
@@ -52,11 +52,32 @@ exit 0, `target/junit.xml` à 0 échec). `.gitignore` ignorait `.*` : exception 
 Pas d'entrée CHANGELOG (rien ne change pour les utilisateurs de la lib).
 Premier run vert sur la PR #1 (21 s).
 
-### 4. Durées + slowest steps
-`System/nanoTime` autour de `apply f` dans `run-step`, stocké en `:duration-ns` sur le
-step. Plugin kaocha `--slowest-steps N` sur le modèle de
-`src/kaocha/plugin/scenari_dry_run.clj`, agrégé par glue.
-Vérif : corpus Electre, durée totale avant/après (overhead négligeable), lecture du top-N.
+### 4. Durées + slowest steps — FAIT
+`run-step` pose `:duration-ns` (succès comme échec) ; plugin
+`:kaocha.plugin/scenari-slowest-steps`, `--slowest-steps N`, agrégé par glue (total,
+appels, max). Le temps par scénario reste celui de `:kaocha.plugin/profiling`.
+Test : `scenari-slowest-steps-test` dans `test/scenari/v2/core_test.clj`.
+
+Mesure sur Electre (`diffusion/backend`, suite `:scenario`, 392 tests verts partout),
+temps de suite selon kaocha, Clornichon substitué par `:override-deps` :
+
+| Run                               | Suite  |
+|-----------------------------------|--------|
+| scenari `2396ada` (gitlib)        | 90,7 s · 93,0 s |
+| `2396ada` en `local/root`         | 90,8 s |
+| `HEAD`                            | 91,5 s |
+| `HEAD` + `--slowest-steps 20`     | 95,1 s · 98,5 s · 86,8 s |
+
+Bruit d'environnement de ±6 % (Postgres/Solr), aucun écart attribuable au code.
+
+À exploiter côté Electre (top du rapport) :
+- `l'{word} {string} de l'organisation {string}` (`glue.utilisateur`) : 26,1 s sur
+  372 appels (~70 ms chacun), ~28 % de la suite à lui seul.
+- création de panier avec sélection de notices : 5,0 s / 120 appels.
+- `l'{word} {string} du groupe ... rattaché à l'organisation ...` : 4,3 s / 61 appels.
+
+Prérequis local découvert : le schéma Postgres doit être migré
+(`clojure -M:db-migrator` dans `bo/backend`), `test.sh` ne le fait qu'en CI.
 
 ### 5. Hooks
 `run-hooks` (`core.clj:252`) appelle `(pre-run-fn)` sans argument : passer le scénario
