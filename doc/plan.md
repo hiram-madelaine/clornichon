@@ -43,7 +43,7 @@ Règles :
 | 12 | Un hook qui lève fait échouer son scénario, pas le run      | 5   | critique  | FAIT | PR 1 ; NDJSON : pas d'enveloppe `hook`, voir le détail |
 | 13 | `release.sh` prépare la doc avant de taguer                 | 5   | important | FAIT | PR 2 ; garde-fou, le « Prepare » reste à la main |
 | 14 | `-load` charge aussi les `test-paths`                       | 5   | important | FAIT | PR 2 |
-| R9 | Release 0.1.11 (12, 13, 14, 21)                             | 5   | —         | TODO | |
+| R9 | Release 0.1.11 (12 à 23, tout le lot 5)                     | 5   | —         | EN COURS | préparée, reste `./release.sh patch` avec les identifiants Clojars |
 | 15 | Ordre du fichier dans la doc HTML, fin de `Rule` en console | 5   | important | FAIT | PR 4 |
 | 16 | Retirer `deffeature` sur un répertoire, et commons-io       | 5   | modéré    | FAIT | PR 5 |
 | 17 | Type hints sur le chemin de matching                        | 5   | modéré    | FAIT | PR 5 ; banc : 1 156 ms → 94 ms ; mesure Electre à l'agent dédié |
@@ -53,7 +53,7 @@ Règles :
 | 21 | `--fail-fast` fait tomber le run au premier step en échec   | 5   | important | FAIT | PR 3 ; traité avant R9, part donc en 0.1.11 |
 | 22 | Un `is` qui échoue dans un hook laisse le run vert          | 5   | modéré    | FAIT | PR 6 ; trouvé en traitant 21 ; dans `call-hook`, `:error` compris |
 | 23 | Un `is` dont la forme lève dans un step laisse le run vert  | 5   | modéré    | FAIT | PR 7 ; trouvé en traitant 22 |
-| R10 | Release 0.1.12 (15 à 20, 22, 23)                           | 5   | —         | TODO | 23 ajouté : son correctif est dans `[Unreleased]` avec les autres |
+| R10 | Release 0.1.12 (15 à 20, 22, 23)                           | 5   | —         | ABANDONNÉ | tout était fusionné avant R9 : parti en 0.1.11 |
 
 Ordre proposé : 12 (le seul critique), 13 (pour que R9 ne refasse pas l'erreur de
 0.1.10), 14, 21, R9 ; puis 15 à 20 et 22 dans l'ordre, R10. Les items 16 à 22 sont
@@ -70,6 +70,9 @@ PR du lot :
 | 5  | 16, 17     | 0.1.12  | changements de code modérés, indépendants |
 | 6  | 18, 19, 20, 22 | 0.1.12 | avertissement, ménage, doc ; 22 va avec 18, deux hooks qui se taisent |
 | 7  | 23         | 0.1.12  | trouvé en traitant 22, seul |
+
+Les sept PR étaient fusionnées avant R9 : tout part en 0.1.11, voir R9. La colonne
+« Release » garde ce qui était prévu.
 
 Un item passe à `FAIT` dans le commit de sa PR ; une PR de plusieurs items porte un
 commit par item.
@@ -257,6 +260,12 @@ le bump côté Electre revient à l'agent dédié.
 Dans l'ordre : commit « Prepare 0.1.11 » sur `master`, `./release.sh patch` sans
 identifiants pour l'essai à blanc, puis avec. Ensuite demander le build cljdoc de 0.1.11
 et vérifier que son README installe 0.1.11.
+
+Décidé comme recommandé : une seule release. `master` portait les items 12 à 23 quand
+R9 a été prise, et `release.sh` publie `HEAD`. R10 n'a plus rien à publier.
+Préparée le 2026-09-27 : « Prepare 0.1.11 » sur `master`, non poussé — `release.sh` le
+pousse avec le tag, une fois l'artefact accepté par Clojars. Essai à blanc :
+`Docs are ready for 0.1.11`, puis arrêt sur `CLOJARS_USERNAME is not set`.
 
 ### 15. Ordre du fichier dans la doc HTML, fin de `Rule` en console — important
 
@@ -527,6 +536,8 @@ le compte d'un step qui lève.
 
 ### R10. Release 0.1.12
 Après 15 à 20, 22 et 23. Peut se scinder si un item traîne.
+
+Abandonnée : ses items sont partis en 0.1.11, voir R9.
 
 ## Vérifié par l'audit, rien à faire
 

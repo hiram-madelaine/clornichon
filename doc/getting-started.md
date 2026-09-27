@@ -6,9 +6,9 @@ From an empty project to a first green scenario.
 
 ```clojure
 ;; deps.edn
-io.github.hiram-madelaine/clornichon {:mvn/version "0.1.10"}
+io.github.hiram-madelaine/clornichon {:mvn/version "0.1.11"}
 ;; or project.clj
-[io.github.hiram-madelaine/clornichon "0.1.10"]
+[io.github.hiram-madelaine/clornichon "0.1.11"]
 ```
 
 The namespaces keep their `scenari.*` names:

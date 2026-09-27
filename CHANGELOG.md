@@ -3,6 +3,8 @@ All notable changes to this project will be documented in this file. This change
 
 # [Unreleased] #
 
+# [0.1.11] - 2026-09-27 #
+
 ## Fixed ##
 
 A step whose `is` raises fails, and its scenario with it. clojure.test catches
