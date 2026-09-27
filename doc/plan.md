@@ -42,7 +42,7 @@ Règles :
 | 11 | Niveau `Rule` dans le rapport et l'arbre kaocha             | 4   | —         | EN COURS | livré en 0.1.9 ; reste la mesure Electre (coût attendu nul) |
 | 12 | Un hook qui lève fait échouer son scénario, pas le run      | 5   | critique  | FAIT | PR 1 ; NDJSON : pas d'enveloppe `hook`, voir le détail |
 | 13 | `release.sh` prépare la doc avant de taguer                 | 5   | important | TODO | à faire avant R9 |
-| 14 | `-load` charge aussi les `test-paths`                       | 5   | important | TODO | l'exemple `tests.edn` de la doc ne charge pas |
+| 14 | `-load` charge aussi les `test-paths`                       | 5   | important | FAIT | PR 2 |
 | R9 | Release 0.1.11 (12, 13, 14)                                 | 5   | —         | TODO | |
 | 15 | Ordre du fichier dans la doc HTML, fin de `Rule` en console | 5   | important | TODO | |
 | 16 | Retirer `deffeature` sur un répertoire, et commons-io       | 5   | modéré    | TODO | |
@@ -221,6 +221,10 @@ Correctif : `(require-all-ns (concat (::glue-paths testable) (:kaocha/test-paths
 les glues d'abord — un glue doit être chargé avant le `deffeature` qui s'en sert.
 Tests : un `testable/load` dont les `glue-paths` ne couvrent pas les `test-paths`.
 CHANGELOG : `Fixed`.
+
+Fait. Le test charge `test/fixtures/lonely`, qu'aucune suite ne charge ; il échoue aussi
+si l'ordre est inversé, la feature ne requérant pas son glue. Vérifié sur le projet
+jetable avec le `tests.edn` de la doc.
 
 ### R9. Release 0.1.11
 Après 12, 13 et 14. S'arrêter à la publication Clojars et à la mise à jour de ce plan :

@@ -117,7 +117,9 @@
        (apply require)))
 
 (defmethod testable/-load :kaocha.type/scenari [testable]
-  (require-all-ns (::glue-paths testable))
+  ;; the glues first: a feature is parsed when its namespace loads, and looks
+  ;; its glues up among the namespaces loaded by then
+  (require-all-ns (concat (::glue-paths testable) (:kaocha/test-paths testable)))
   (let [tests (for [test-path (:kaocha/test-paths testable)
                     {{:keys [feature scenarios pre-run post-run annotations description messages]} :scenari/feature-ast
                      :as                                             feature-meta} (find-features-meta-in-dir test-path)

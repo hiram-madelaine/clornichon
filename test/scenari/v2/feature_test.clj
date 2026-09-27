@@ -109,6 +109,27 @@ Feature: mixed tags
                    (mapcat :kaocha.test-plan/tests (loaded-features)))]
       (is (apply distinct? ids)))))
 
+(deftest load-requires-the-test-paths-test
+  (testing "-load requires the namespaces of the test-paths, not only those of
+  the glue-paths - the layout of doc/running.md, where the glues have a
+  directory of their own under the features - and the glues first: a feature
+  does not have to require them"
+    ;; as in a fresh run, even at the REPL
+    (doseq [ns '[fixtures.lonely.cart fixtures.lonely.glue.cart]]
+      (remove-ns ns)
+      (dosync (alter @#'clojure.core/*loaded-libs* disj ns)))
+    (let [suite   (binding [t/report (constantly nil)]
+                    (testable/load {:kaocha.testable/type           :kaocha.type/scenari
+                                    :kaocha.testable/id             :lonely
+                                    :kaocha/source-paths            ["src"]
+                                    :kaocha/test-paths              ["test/fixtures/lonely"]
+                                    :kaocha.type.scenari/glue-paths ["test/fixtures/lonely/glue"]}))
+          feature (first (:kaocha.test-plan/tests suite))]
+      (is (= [:fixtures.lonely.cart/lonely-cart]
+             (map :kaocha.testable/id (:kaocha.test-plan/tests suite))))
+      (is (= "a lonely cart"
+             (-> feature :kaocha.test-plan/tests first :steps first :glue :step str))))))
+
 (def post-run-atom (atom 0))
 (defn post-run-side-effect [] (swap! post-run-atom inc))
 

@@ -61,6 +61,8 @@ Declare a suite of type `:kaocha.type/scenari` in `tests.edn`:
                   :kaocha.plugin/scenari-messages]}
 ```
 
+The namespaces under the `glue-paths` are loaded first, then those under the `test-paths`: a feature finds its glues without requiring them. The `glue-paths` can sit under the `test-paths`, as here, or anywhere else.
+
 Each feature, each `Rule` and each scenario is a node of the Kaocha tree. A scenario's id is qualified by its feature, `:my.ns.my-feature/scenario-name`, whether it sits in a rule or not; the bare name stays an alias for `--focus`. A rule's id is `:my.ns.my-feature.rule/rule-name`, and `--focus rule-name` runs its scenarios alone.
 
 ```clojure
