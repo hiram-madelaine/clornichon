@@ -5,8 +5,9 @@ set -e
 : "${CLOJARS_USERNAME:?CLOJARS_USERNAME is not set}"
 : "${CLOJARS_PASSWORD:?CLOJARS_PASSWORD is not set}"
 
-# Bump the version, spit it into src/scenari/meta.clj, commit and tag (no push yet)
-tag=$(clj -M:release "$1" --spit --output-dir src --namespace scenari.meta --formats clj --without-push)
+# Bump the version, spit it into src/scenari/meta.clj, commit and tag (no push yet).
+# metav prints its SemVer records before the tag: keep the last line only
+tag=$(clj -M:release "$1" --spit --output-dir src --namespace scenari.meta --formats clj --without-push | tail -1)
 echo "Tagged $tag"
 
 ./build.sh
