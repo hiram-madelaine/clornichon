@@ -4,7 +4,7 @@ Gaps against Cucumber, roughly by value/effort.
 
 ## Step expressions
 
-* [ ] custom parameter types: the `ParameterTypeRegistry` is in `glue.clj`, it needs a public way to add one
+* [x] custom parameter types: `define-parameter-type!`
 * [ ] a datatable API beyond a vector of string maps: lists, transpose, diff, row-to-entity conversion
 
 ## Execution

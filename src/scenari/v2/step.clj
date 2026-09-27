@@ -3,10 +3,11 @@
             [scenari.v2.glue :as glue])
   (:import (io.cucumber.cucumberexpressions CucumberExpressionGenerator)))
 
-(def ^:private generator
+(defn- generator
   "Le générateur de cucumber, sur le même registre de types que le matching :
   ce qu'il propose est exactement ce que `find-glue-by-step-regex` saura relire."
-  (delay (CucumberExpressionGenerator. @glue/parameter-type-registry)))
+  []
+  (CucumberExpressionGenerator. @glue/parameter-type-registry))
 
 (defn- as-clojure-string
   "L'expression va dans un littéral chaîne à coller : ses échappements - le
@@ -18,7 +19,7 @@
 (defn generate-step-fn
   "return a string representing a spexec macro call corresponding to the sentence step"
   [{:keys [sentence sentence-keyword params]}]
-  (let [expression (first (.generateExpressions @generator sentence))
+  (let [expression (first (.generateExpressions (generator) sentence))
         ;; un paramètre par token de la phrase, plus le bloc - datatable ou
         ;; docstring - que le step porte déjà
         arity      (+ (count (.getParameterNames expression)) (count params))]

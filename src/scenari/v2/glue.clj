@@ -1,7 +1,7 @@
 (ns scenari.v2.glue
   (:require [clojure.test :as t]
             [clojure.string :as string])
-  (:import (io.cucumber.cucumberexpressions ExpressionFactory ParameterType ParameterTypeRegistry Transformer)
+  (:import (io.cucumber.cucumberexpressions CaptureGroupTransformer ExpressionFactory ParameterType ParameterTypeRegistry Transformer)
            (java.util.regex Pattern)
            (java.lang.reflect Type)
            (java.util Locale)))
@@ -13,23 +13,59 @@
   glue. Une fn Clojure ne déclare rien, la conversion reste celle du token."
   (into-array Type []))
 
-(def parameter-type-registry
-  "Les types de token connus des expressions. `{number}` n'en fait pas partie -
-  il est défini ici pour les glues déjà écrits, et gagne au passage le signe et
-  les décimales. `useForSnippets` false : un squelette généré propose les types
-  de cucumber, `{int}` et `{double}`, plutôt que de propager le nôtre."
-  (delay
-    (doto (ParameterTypeRegistry. Locale/ENGLISH)
-      (.defineParameterType (ParameterType. "number" "-?\\d+(?:\\.\\d+)?" Object
-                                            (reify Transformer (transform [_ s] (read-string s)))
-                                            false false)))))
+(defn invalidate-glues-cache!
+  "Invalidate the `all-glues` cache. Called by the step definition macros: a glue
+   can appear in an already loaded namespace, which the namespace count alone
+   cannot detect."
+  []
+  (reset! glues-cache nil))
 
-(def ^:private expression-factory
+(def ^:private number-type
+  "`{number}` n'est pas un type cucumber - il est défini ici pour les glues déjà
+  écrits, et gagne au passage le signe et les décimales. `useForSnippets` false :
+  un squelette généré propose les types de cucumber, `{int}` et `{double}`,
+  plutôt que de propager le nôtre."
+  (ParameterType. "number" "-?\\d+(?:\\.\\d+)?" Object
+                  (reify Transformer (transform [_ s] (read-string s)))
+                  false false))
+
+;; defonce : ce sont les types de l'utilisateur, un rechargement de ce ns ne
+;; doit pas les perdre
+(defonce ^:private custom-types (atom {}))
+
+(defn- registry-of [types]
+  (let [r (ParameterTypeRegistry. Locale/ENGLISH)]
+    (run! #(.defineParameterType r %) (cons number-type (vals types)))
+    r))
+
+(def parameter-type-registry
+  "Les types de token connus des expressions : ceux de cucumber, `{number}` et
+  ceux de `define-parameter-type!`. Un atome, parce que cucumber refuse de
+  redéfinir un type : le redéfinir reconstruit le registre."
+  (atom (registry-of @custom-types)))
+
+(defn define-parameter-type!
+  "Voir `scenari.v2.core/define-parameter-type!`."
+  [type-name regex transform]
+  (let [t (ParameterType. ^String type-name (str regex) Object
+                          (reify CaptureGroupTransformer
+                            (transform [_ groups] (apply transform groups)))
+                          true false)]
+    ;; le registre est construit avant d'être publié : un nom invalide ou une
+    ;; regex en conflit lève ici, sans laisser un registre à moitié fait
+    (reset! parameter-type-registry (registry-of (assoc @custom-types type-name t)))
+    (swap! custom-types assoc type-name t)
+    ;; les glues déjà compilés l'ont été contre l'ancien registre
+    (invalidate-glues-cache!)
+    type-name))
+
+(defn- expression-factory
   "Les *cucumber expressions*, la moitié que gherkin ne couvre pas : `{int}`
   `{float}` `{word}` `{string}`, le texte optionnel `apple(s)` et l'alternance
   `hot/cold`. Une phrase encadrée de `^...$` ou de `/.../` reste lue comme une
   regex, comme avant."
-  (delay (ExpressionFactory. @parameter-type-registry)))
+  []
+  (ExpressionFactory. @parameter-type-registry))
 
 (defn step->expression
   "La phrase d'un glue, compilée. Un litéral `#\"...\"` est une regex quoi qu'elle
@@ -39,20 +75,13 @@
   ParameterType - en nommant le glue fautif, sinon l'erreur ne dit pas lequel des
   400 glues chargés est en cause."
   [{:keys [step ns name]}]
-  (try (.createExpression @expression-factory
+  (try (.createExpression (expression-factory)
                           (if (instance? Pattern step)
                             (str "^(?:" step ")$")
                             (str step)))
        (catch Exception e
          (throw (ex-info (str "glue " ns "/" name " : " (.getMessage e))
                          {:step step :ns ns :name name} e)))))
-
-(defn invalidate-glues-cache!
-  "Invalidate the `all-glues` cache. Called by the step definition macros: a glue
-   can appear in an already loaded namespace, which the namespace count alone
-   cannot detect."
-  []
-  (reset! glues-cache nil))
 
 (defn all-glues
   "Find all glue functions (step definitions) in all loaded namespaces.

@@ -426,3 +426,19 @@
       (is (= 'le-cafe-est-chaud-froid (:name (meta v))))
       (is (= "le cafe est chaud/froid" (:step (meta v)))
           "seul le nom du var est nettoyé, la phrase garde son alternance"))))
+
+(t/deftest define-parameter-type-test
+  (t/testing "un type défini par l'utilisateur : un argument par groupe capturant,
+  la conversion faite une fois pour tous les glues"
+    (v2/define-parameter-type! "prix" #"(\d+\.\d{2}) (EUR|USD)"
+      (fn [montant devise] {:montant (bigdec montant) :devise (keyword devise)}))
+    (v2/defgiven "un livre à {prix}" [state prix] (assoc state :prix prix))
+    (let [ast (v2/->feature-ast "Feature: f\nScenario: s\nGiven un livre à 12.50 EUR\n" {} *ns*)]
+      (is (= [{:type :value :val {:montant 12.50M :devise :EUR}}]
+             (-> ast :scenarios first :steps first :params)))))
+  (t/testing "sans groupe, la fonction reçoit le match entier ; redéfinir remplace"
+    (v2/define-parameter-type! "prix" #"\d+ euros" string/upper-case)
+    (is (= ["12 EUROS"] (glue/step-args {:step "un livre à {prix}"} "un livre à 12 euros"))))
+  (t/testing "un nom invalide lève à la définition et laisse le registre intact"
+    (is (thrown? Exception (v2/define-parameter-type! "pas{bon" #"x" identity)))
+    (is (= ["12 EUROS"] (glue/step-args {:step "un livre à {prix}"} "un livre à 12 euros")))))

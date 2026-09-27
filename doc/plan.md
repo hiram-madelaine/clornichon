@@ -28,11 +28,11 @@ Règles :
 | R1 | Release 0.1.3                                     | 1   | les deux   | FAIT | publiée sur Clojars, tag `v0.1.3` |
 | 4  | Durées step/scénario + rapport « slowest steps »  | 2   | Electre    | FAIT | 0 surcoût mesurable sur Electre ; 1 glue = ~28 % de la suite |
 | R2 | Release 0.1.4 (`--slowest-steps`)                 | 2   | les deux   | FAIT | publiée sur Clojars, tag `v0.1.4` |
-| E1 | Electre passe de scenari `2396ada` à clornichon 0.1.4 | 2 | Electre  | EN COURS | poussé sur `chore/migration-clornichon-0.1.4` (e1aa04e25e), MR + CI à faire |
+| E1 | Electre passe de scenari `2396ada` à clornichon 0.1.5 | 2 | Electre  | EN COURS | branche `chore/migration-clornichon-0.1.4` poussée (e8072f8ac2, 0.1.5) ; MR + CI à faire |
 | 5  | Hooks reçoivent le scénario + hooks par tag       | 2   | Electre    | FAIT | arité 0 prioritaire (compat Electre) ; 392/392 verts |
-| R3 | Release 0.1.5 (hooks)                             | 2   | les deux   | EN COURS | préparée, reste `./release.sh patch` |
+| R3 | Release 0.1.5 (hooks)                             | 2   | les deux   | FAIT | publiée sur Clojars, tag `v0.1.5` |
 | 6  | Sortie cucumber-messages (NDJSON)                 | 3   | communauté | TODO |       |
-| 7  | Types de paramètres custom publics                | 3   | communauté | TODO |       |
+| 7  | Types de paramètres custom publics                | 3   | communauté | FAIT | `define-parameter-type!` ; à publier dans 0.1.6 |
 | 8  | Namespace `clornichon.*` (alias)                  | 3   | communauté | TODO | décision à prendre |
 
 ## Détail des items
@@ -82,7 +82,7 @@ Bruit d'environnement de ±6 % (Postgres/Solr), aucun écart attribuable au code
 Prérequis local découvert : le schéma Postgres doit être migré
 (`clojure -M:db-migrator` dans `bo/backend`), `test.sh` ne le fait qu'en CI.
 
-### E1. Migration d'Electre vers 0.1.4 — EN COURS
+### E1. Migration d'Electre vers 0.1.5 — EN COURS
 `diffusion/backend`, `diffusion/import`, `bo/backend`, `bo/account-domain` : la dep git
 `io.github.hiram-madelaine/scenari` (SHA `2396ada`, sur une branche non mergée du fork)
 devient `io.github.hiram-madelaine/clornichon {:mvn/version "0.1.4"}`.
@@ -92,6 +92,9 @@ Vérifié : classpaths identiques hormis la lib (même `tools.logging`, même `j
 Constat : les scénarios de `bo/account-domain` (`test/scenario/`) ne tournent jamais — ns
 mal nommés (`scenario_org` au lieu de `scenario.scenario-org`) et `test-utils` introuvable ;
 préexistant, hors migration.
+
+Passage à 0.1.5 (hooks) : `diffusion/backend` `:scenario` 392/392 (96,1 s, dans le bruit),
+`bo/account-domain` 41 tests verts.
 
 ### 5. Hooks — FAIT
 Un hook qui n'a que l'arité 1 reçoit `{:scenario-name :annotations}` (+ `:status` en
@@ -112,6 +115,10 @@ résultats de run. Plus gros chantier : à détailler quand il passe `EN COURS`.
 ### 7. Types de paramètres custom
 Exposer une fonction publique sur le `ParameterTypeRegistry` de `glue.clj` + doc dans
 `doc/step-expressions.md`.
+
+Fait : `scenari.v2.core/define-parameter-type!` (nom, regex, fonction). Cucumber refuse
+de redéfinir un type : le registre est un atome reconstruit à chaque définition, qui
+invalide aussi le cache des glues. La fonction reçoit un argument par groupe capturant.
 
 ### 8. Namespace `clornichon.*`
 Décision d'abord (alias non cassant vs deux noms à documenter). Pas de code avant.
