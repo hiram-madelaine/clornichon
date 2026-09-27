@@ -1,6 +1,5 @@
 (ns kaocha.type.scenari
-  (:require [clojure.string :as string]
-            [clojure.test :as t]
+  (:require [clojure.test :as t]
             [clojure.string :as str]
             [clojure.java.io :as io]
             [clojure.spec.alpha :as s]
@@ -8,12 +7,8 @@
             [kaocha.testable :as testable]
             [kaocha.hierarchy :as hierarchy]
             [kaocha.repl :as krepl]
-            [scenari.v2.core :as v2]
             [scenari.v2.core :as sc]
             [scenari.v2.test]))
-
-(s/def :kaocha.type/scenari (s/keys :req [:kaocha/source-paths
-                                          :kaocha/test-paths]))
 
 (defn path->file "Looking path from resource or a file in file system" [path]
   (or (io/file (io/resource path))
@@ -248,13 +243,6 @@
                 :kaocha.result/pass  (if (= (:status testable) :success) 1 0)
                 :kaocha.result/fail  (if (= (:status testable) :fail) 1 0)}))))
 
-(defmethod testable/-run :kaocha.type/scenari-step [testable test-plan]
-  (let [results [(v2/run-step {} testable)]
-        testable (-> testable
-                     (dissoc :kaocha.test-plan/tests)
-                     (assoc :kaocha.result/pass results))]
-    testable))
-
 (s/def ::glue-paths (s/coll-of string?))
 
 (s/def :kaocha.type/scenari (s/keys :req [:kaocha/source-paths
@@ -264,14 +252,7 @@
 (s/def :kaocha.type/scenari-feature any?)
 (s/def :kaocha.type/scenari-rule any?)
 (s/def :kaocha.type/scenari-scenario any?)
-(s/def :kaocha.type/scenari-step any?)
 (s/def :kaocha.type/scenari-hook any?)
-
-(hierarchy/derive! ::begin-feature :kaocha/begin-group)
-(hierarchy/derive! ::end-feature :kaocha/end-group)
-
-(hierarchy/derive! ::begin-scenario :kaocha/begin-test)
-(hierarchy/derive! ::end-scenario :kaocha/end-test)
 
 (hierarchy/derive! :kaocha.type/scenari :kaocha.testable.type/suite)
 (hierarchy/derive! :kaocha.type/scenari-feature :kaocha.testable.type/group)

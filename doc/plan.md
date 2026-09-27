@@ -48,7 +48,7 @@ Règles :
 | 16 | Retirer `deffeature` sur un répertoire, et commons-io       | 5   | modéré    | FAIT | PR 5 |
 | 17 | Type hints sur le chemin de matching                        | 5   | modéré    | FAIT | PR 5 ; banc : 1 156 ms → 94 ms ; mesure Electre à l'agent dédié |
 | 18 | Hooks globaux ignorés sans rien dire                        | 5   | modéré    | FAIT | PR 6 ; un hook privé tourne |
-| 19 | Code mort, features d'exemple hors du jar                   | 5   | ménage    | TODO | |
+| 19 | Code mort, features d'exemple hors du jar                   | 5   | ménage    | FAIT | PR 6 ; 4 features supprimées, 2 sous `test/features/` |
 | 20 | `doc/development-workflow.md` à jour                        | 5   | mineur    | TODO | |
 | 21 | `--fail-fast` fait tomber le run au premier step en échec   | 5   | important | FAIT | PR 3 ; traité avant R9, part donc en 0.1.11 |
 | 22 | Un `is` qui échoue dans un hook laisse le run vert          | 5   | modéré    | FAIT | PR 6 ; trouvé en traitant 21 ; dans `call-hook`, `:error` compris |
@@ -395,6 +395,21 @@ sont à supprimer plutôt qu'à déplacer, si rien ne les lit.
 
 Vérifier : `unzip -l target/clornichon-*.jar` ne liste plus que `scenari/`, `kaocha/`
 et `META-INF/`. CHANGELOG : `Changed` pour le contenu du jar, rien pour le code mort.
+
+Fait. Rien ne lisait les six features, ni dans `test/` ni dans `doc/` :
+- les quatre qui ne se parsent plus sont supprimées ;
+- `atm.feature` et `calculator.feature` passent sous `test/features/`, et
+  `corpus_test.clj` vérifie qu'elles se parsent — c'est ce qui a manqué aux quatre
+  autres ;
+- `resources/` n'existe plus : retiré des `:paths` de `deps.edn` et de
+  `script/build.clj`.
+
+Vérifié : le jar ne contient plus que `scenari/`, `kaocha/` et `META-INF/`. Il a été
+construit sans l'étape d'installation : `./build.sh` installe aussi le jar dans
+`~/.m2`, sous la version courante, et y remplace donc l'artefact de Clojars.
+`./test.sh` n'émet plus l'avertissement de `-A`. Le `DEPRECATED: Libs must be
+qualified ... enlive` qui reste vient de `~/.clojure/deps.edn`, pas du repo.
+Electre n'appelle rien de `scenari.utils`.
 
 ### 20. `doc/development-workflow.md` à jour — mineur
 

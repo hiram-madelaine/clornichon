@@ -15,8 +15,8 @@
 
 (defn jar "Build jar and pom into target dir" [_]
   (clean nil)
-  (println "Copy sources/resources...")
-  (b/copy-dir {:src-dirs   ["src" "resources"]
+  (println "Copy sources...")
+  (b/copy-dir {:src-dirs   ["src"]
                :target-dir jar-content})
   (println "Write pom into target/META-INF...")
   (b/write-pom {:class-dir jar-content
