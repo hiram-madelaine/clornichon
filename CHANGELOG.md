@@ -5,6 +5,11 @@ All notable changes to this project will be documented in this file. This change
 
 ## Fixed ##
 
+The Kaocha suite loads the namespaces of its `test-paths`, after those of its
+`glue-paths`. It only loaded the glues: with the `tests.edn` of
+`doc/running.md`, where the glues have a directory of their own, the run ended
+on `No namespace: ... found`. The `glue-paths` had to cover the `test-paths`.
+
 A hook that throws fails what it wraps instead of ending the Kaocha run. The
 run stopped there, without summary, `junit.xml` or report; now a scenario hook
 fails its scenario, a `:pre-run` / `:before-feature` fails the scenarios of its
