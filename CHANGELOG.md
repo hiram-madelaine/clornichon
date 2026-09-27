@@ -5,6 +5,12 @@ All notable changes to this project will be documented in this file. This change
 
 ## Fixed ##
 
+A global hook that could never run no longer stays silent. A private one -- a
+`defn-` marked `:scenari/hook` -- runs like another: the lookup only saw the
+public vars. `:scenari/tags` on a `:before-all` or an `:after-all` throws when
+the hooks are looked up, naming the hook: the suite has no tags, the expression
+never matched.
+
 A `deffeature` takes a `java.io.File`. It threw a `ClassCastException`, for a
 file as for a directory.
 
