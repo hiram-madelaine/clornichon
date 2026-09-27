@@ -5,6 +5,11 @@ All notable changes to this project will be documented in this file. This change
 
 ## Fixed ##
 
+A step whose `is` raises fails, and its scenario with it. clojure.test catches
+what the form of an `is` throws and reports an `:error`: Kaocha printed
+`ERROR in ...` and the run stayed green, `0 failures` in the summary and in
+`junit.xml`, exit code 0, and the next steps ran.
+
 A hook whose `is` fails fails what it wraps, like a hook that throws. Kaocha
 printed `FAIL in ...` and the run stayed green: `0 failures` in the summary and
 in `junit.xml`, exit code 0, and the steps ran after a failed

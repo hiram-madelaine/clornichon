@@ -234,6 +234,14 @@
 ;;          RUN
 ;; ------------------------
 
+(defn- assertion-failed?
+  "Un `is` a échoué depuis que `*report-counters*` est lié. Il ne lève rien : le
+  reporter l'affiche et le compte, c'est ce compteur qui le dit. :error compris :
+  un `is` dont la forme lève, clojure.test l'attrape et le compte là."
+  []
+  (let [{:keys [fail error]} @t/*report-counters*]
+    (pos? (+ fail error))))
+
 (defn run-step [step scenario-state]
   (binding [clojure.test/*report-counters* (ref clojure.test/*initial-report-counters*)]
     (let [f (get-in step [:glue :ref])
@@ -255,7 +263,7 @@
                  ;; ne peut pas ; le jour ou ca arrive, il faudra un marqueur
                  ;; explicite plutot qu'une heuristique sur le type.
                  state (if (or (nil? out) (boolean? out)) scenario-state out)
-                 any-fail? (> (:fail (deref clojure.test/*report-counters*)) 0)]
+                 any-fail? (assertion-failed?)]
              (-> step
                  (assoc :input-state scenario-state)
                  (assoc :output-state state)
@@ -298,10 +306,8 @@
       (if (and (some #(= 1 (count %)) arglists) (not-any? empty? arglists))
         (f ctx)
         (f))
-      ;; :error : un `is` dont la forme lève, clojure.test l'attrape
-      (let [{:keys [fail error]} @t/*report-counters*]
-        (when (pos? (+ fail error))
-          (throw (ex-info (str "hook " f " : an assertion failed") {:hook f})))))))
+      (when (assertion-failed?)
+        (throw (ex-info (str "hook " f " : an assertion failed") {:hook f}))))))
 
 (def hook-keys
   "Les valeurs de `:scenari/hook` : ce qu'un hook global encadre."

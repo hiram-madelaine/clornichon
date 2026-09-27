@@ -216,6 +216,31 @@ Feature: mixed tags
       (is (= 1 (:kaocha.result/fail result)))
       (is (= ["boom"] (map (comp ex-message :actual) (fail-events events)))))))
 
+(v2/defthen "the assertion raises" [_] (is (= 1 (throw (ex-info "raised in is" {})))))
+
+(deftest assertion-that-raises-test
+  (testing "an `is` whose form raises throws nothing: clojure.test catches the
+  exception and reports an :error. The step fails like one whose `is` is
+  false, and its scenario with it - it used to pass"
+    (let [events   (atom [])
+          scenario (-> (v2/->feature-ast "Feature: f\n  Scenario: s\n    Then the assertion raises\n    Then the side effect is the last form" {} *ns*)
+                       :scenarios
+                       first
+                       (merge {:kaocha.testable/type :kaocha.type/scenari-scenario
+                               :kaocha.testable/id   ::raising-assertion}))
+          result   (binding [;; the failures counted here are not those of this test
+                             t/*report-counters* (ref t/*initial-report-counters*)
+                             t/report            (fn [m]
+                                                   (swap! events conj m)
+                                                   (kaocha.report/report-counters m))]
+                     (testable/-run scenario {}))]
+      (is (= [:fail :pending] (map :status (:steps result))))
+      (is (nil? (:exception (first (:steps result)))) "the step itself threw nothing")
+      (is (= 1 (:kaocha.result/fail result)))
+      (is (= [[:error "raised in is"]]
+             (map (juxt :type (comp ex-message :actual)) (fail-events @events)))
+          "the assertion as clojure.test reported it, and the next step did not run"))))
+
 (deftest undefined-step-names-the-step-test
   (testing "a step without glue fails with its sentence and a skeleton, not the
   NPE `(apply nil ...)` used to raise"
