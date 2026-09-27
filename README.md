@@ -4,6 +4,8 @@
 
 # Clornichon - Gherkin specifications, executed by Clojure
 
+[![Clojars Project](https://img.shields.io/clojars/v/io.github.hiram-madelaine/clornichon.svg)](https://clojars.org/io.github.hiram-madelaine/clornichon)
+
 *Clornichon* = **Clo**jure + **cornichon**, the French gherkin. Write your specifications in plain [Gherkin](https://cucumber.io/docs/gherkin/) (Given/When/Then), bind each step to a Clojure function, run them with `clojure.test` or [Kaocha](https://github.com/lambdaisland/kaocha).
 
 * **Cucumber's own parser**: feature files are read by [`io.cucumber/gherkin`](https://github.com/cucumber/gherkin), the reference implementation -- ~70 languages, `Rule`, `Background`, `Scenario Outline`, tags, datatables and doc strings.
