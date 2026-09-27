@@ -17,7 +17,7 @@
 (defn- scenario? [t] (= :kaocha.type/scenari-scenario (::testable/type t)))
 
 (defn- scenari? [t]
-  (contains? #{:kaocha.type/scenari-feature :kaocha.type/scenari-scenario}
+  (contains? #{:kaocha.type/scenari-feature :kaocha.type/scenari-rule :kaocha.type/scenari-scenario}
              (::testable/type t)))
 
 (defn- matches? [^Expression expr testable]

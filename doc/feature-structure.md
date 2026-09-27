@@ -40,6 +40,10 @@ Each scenario is represented as a map within the `:scenarios` vector:
 {:id "uuid-string"           ; The pickle's id
  :scenario-name "Name"       ; The scenario title
  :annotations #{...}         ; Optional annotations (tags) of the scenario
+ :description "..."          ; Optional free text under the scenario line
+ :rule {:id "..." :name "..." ; Only in a Rule: the rule grouping the scenario,
+        :annotations #{...}   ; its own tags and description (the scenario
+        :description "..."}   ; already inherits the tags in :annotations)
  :steps [...]                ; Vector of step maps
  :pre-run [...]              ; Hooks to run before the scenario
  :post-run [...]             ; Hooks to run after the scenario
@@ -146,7 +150,7 @@ runnable scenario, and the feature map is a thin translation of it.
 - **Background** — its steps are spliced at the head of every scenario's `:steps`
   (the feature's background first, then the enclosing rule's, if any).
 - **Rule** — only groups scenarios, so its scenarios are lifted into the
-  feature's `:scenarios`, inheriting its tags and its description. The rule name
-  is not kept.
+  feature's `:scenarios`, inheriting its tags. Each carries the rule under
+  `:rule`, which the report and the Kaocha tree group them by.
 - **Scenario Outline** — becomes one scenario per `Examples` row, with the
   `<placeholders>` substituted throughout the scenario, its name included.

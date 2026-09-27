@@ -42,12 +42,14 @@
 
 (defn selected-features
   "The scenari features kept by the filters, each with its kept scenarios under
-  `::scenarios`."
+  `::scenarios` - those of its rules included, in file order: a scenario knows
+  its rule by its `:rule`."
   [tree]
   (for [suite   (kept tree)
         feature (kept suite)
         :when   (= :kaocha.type/scenari-feature (::testable/type feature))]
-    (assoc feature ::scenarios (kept feature))))
+    (assoc feature ::scenarios (mapcat #(if (= :kaocha.type/scenari-rule (::testable/type %)) (kept %) [%])
+                                       (kept feature)))))
 
 ;; ------------------------
 ;;         RENDU
@@ -121,7 +123,15 @@
        "<h2>" (esc (::testable/desc feature)) " " (badge (feature-status feature)) "</h2>"
        (tags-html (feature-annotations feature))
        (desc-html (feature-description feature))
-       (apply str (map scenario-html (::scenarios feature)))
+       (apply str (for [group (partition-by (comp :id :rule) (::scenarios feature))
+                        :let  [rule (:rule (first group))]]
+                    (if rule
+                      (str "<section class=\"rule\"><h3>Rule : " (esc (:name rule)) "</h3>"
+                           (tags-html (:annotations rule))
+                           (desc-html (:description rule))
+                           (apply str (map scenario-html group))
+                           "</section>")
+                      (apply str (map scenario-html group)))))
        "</section>"))
 
 (defn- toc-html [features]
@@ -147,6 +157,7 @@ nav ul{list-style:none;padding-left:1rem} nav>ul{padding-left:0}
 a{color:#0a58ca;text-decoration:none} a:hover{text-decoration:underline}
 .feature{border-top:1px solid #ddd}
 .scenario{margin:1rem 0 1rem 1rem}
+.rule{margin-left:1rem} .rule>h3{color:#555}
 .tags{color:#0a7d7d;font-family:monospace;margin:.2rem 0}
 .desc,.docstring{color:#555;background:#f6f6f6;padding:.4rem .6rem;white-space:pre-wrap;font-size:.9rem}
 .steps{list-style:none;padding-left:0} .steps li{margin:.15rem 0}

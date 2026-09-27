@@ -78,7 +78,7 @@ Given a")]
 
 (deftest background-rule-outline-test
   (testing "Background, Rule et Scenario Outline sont résolus par le compilateur
-  de pickles : la feature map n'a que des scénarios plats"
+  de pickles : la feature map n'a que des scénarios plats, chacun portant sa règle"
     (let [f (feature (str "Feature: f\n"
                           "Background:\nGiven feature setup\n"
                           "@slow\nRule: r\n"
@@ -95,7 +95,7 @@ Given a")]
                                  "fast"}] (mapv :annotations (:scenarios f)))
           "les tags de la règle sont hérités")
       (is (= ["ce que la regle verifie" "ce que la regle verifie"]
-             (mapv :description (:scenarios f)))
+             (mapv (comp :description :rule) (:scenarios f)))
           "la description de la règle est un contexte pour chacun de ses scénarios")))
 
   (testing "un tag posé sur un bloc Examples ne vaut que pour ses lignes"

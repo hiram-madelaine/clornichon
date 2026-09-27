@@ -31,7 +31,7 @@ Gaps against Cucumber, roughly by value/effort.
 
 ## Gherkin
 
-* [ ] a `Rule` level in the report and in the kaocha tree; rules are parsed but flattened into the feature
+* [x] a `Rule` level in the report and in the kaocha tree: `Rule : <name>` above its scenarios, a group node `--focus` can select
 
 ## Glue code
 

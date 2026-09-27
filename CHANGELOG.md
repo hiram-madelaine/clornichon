@@ -3,6 +3,18 @@ All notable changes to this project will be documented in this file. This change
 
 # [Unreleased] #
 
+## Added ##
+
+A `Rule` has its own level: the report prints `Rule : <name>`, its tags and its
+description once, above its scenarios, in the console and in `--doc-html`; the
+Kaocha tree gets a group per rule, which `--focus <rule-name>` selects. Scenario
+ids are unchanged, so an existing `--focus` still works.
+
+## Changed ##
+
+A scenario's `:description` is its own only. The rule's description, which was
+prepended to it, now sits under `:rule` with the rule's name and tags.
+
 # [0.1.8] - 2026-09-27 #
 
 ## Changed ##

@@ -34,10 +34,13 @@
       (str/replace #"_" "-")
       (str/replace #" " "-")))
 
-(defn scenario->id [scenario]
-  (-> (:scenario-name scenario)
+(defn- name->id [s]
+  (-> s
       str/trim
       (str/replace #" " "-")))
+
+(defn scenario->id [scenario]
+  (name->id (:scenario-name scenario)))
 
 (defn scenario->testable [feature-id scenario]
   (let [id (scenario->id scenario)]
@@ -82,6 +85,31 @@
                   [{} []]
                   testables)))
 
+(defn- rule->testable
+  "A `Rule` as a group between its feature and its scenarios. The scenarios keep
+  the ids they had without it, so an existing `--focus` still reaches them; the
+  rule answers to `--focus <rule-name>` through its alias."
+  [feature-id rule scenarios]
+  (let [id (name->id (:name rule))]
+    {::testable/type         :kaocha.type/scenari-rule
+     ::testable/id           (keyword (str (namespace feature-id) "." (name feature-id) ".rule") id)
+     ::testable/aliases      [(keyword id)]
+     ::testable/meta         (zipmap (map keyword (:annotations rule)) (repeat true))
+     ::testable/desc         (:name rule)
+     :kaocha.test-plan/tests (vec scenarios)
+     :rule                   rule}))
+
+(defn- group-rules
+  "The scenarios of a feature, those of a `Rule` gathered under it. Gherkin puts
+  the rules after the feature's own scenarios, and pickles come in file order."
+  [feature-id scenarios]
+  (with-unique-ids
+    (mapcat (fn [group]
+              (if-let [rule (:rule (first group))]
+                [(rule->testable feature-id rule group)]
+                group))
+            (partition-by (comp :id :rule) scenarios))))
+
 (defn- require-all-ns [paths]
   (->> paths
        (map path->file)
@@ -103,7 +131,9 @@
                  ::testable/meta         (merge (dissoc feature-meta :scenari/raw-feature :scenari/feature-ast :test)
                                                 (zipmap (map keyword annotations) (repeat true)))
                  ::testable/desc         feature
-                 :kaocha.test-plan/tests (with-unique-ids (map #(scenario->testable feature-id %) scenarios))
+                 ;; numbered before grouping: a scenario id stays what it was
+                 ;; before rules had a level of their own
+                 :kaocha.test-plan/tests (group-rules feature-id (with-unique-ids (map #(scenario->testable feature-id %) scenarios)))
                  ::annotations           annotations
                  ::description           description
                  ::messages              messages
@@ -135,6 +165,13 @@
                         (assoc :kaocha.result/tests results))]
        (t/do-report {:type :end-feature})
        testable))))
+
+(defmethod testable/-run :kaocha.type/scenari-rule [testable test-plan]
+  (t/do-report {:type :begin-rule :rule (:rule testable)})
+  (let [results (testable/run-testables (:kaocha.test-plan/tests testable) test-plan)]
+    (-> testable
+        (dissoc :kaocha.test-plan/tests)
+        (assoc :kaocha.result/tests results))))
 
 (defmethod testable/-run :kaocha.type/scenari-scenario [testable test-plan]
   (t/do-report {:type :begin-scenario :scenario testable})
@@ -173,6 +210,7 @@
                                           ::glue-paths]))
 
 (s/def :kaocha.type/scenari-feature any?)
+(s/def :kaocha.type/scenari-rule any?)
 (s/def :kaocha.type/scenari-scenario any?)
 (s/def :kaocha.type/scenari-step any?)
 
@@ -184,6 +222,7 @@
 
 (hierarchy/derive! :kaocha.type/scenari :kaocha.testable.type/suite)
 (hierarchy/derive! :kaocha.type/scenari-feature :kaocha.testable.type/group)
+(hierarchy/derive! :kaocha.type/scenari-rule :kaocha.testable.type/group)
 (hierarchy/derive! :kaocha.type/scenari-scenario :kaocha.testable.type/leaf)
 
 (comment

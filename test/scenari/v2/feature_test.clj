@@ -6,8 +6,12 @@
             [kaocha.type.scenari]
             [scenari.v2.some-glue-ns]
             [kaocha.repl :as krepl]
+            [kaocha.plugin.filter :as kfilter]
+            [kaocha.plugin.scenari-doc :as sdoc]
+            [kaocha.plugin.scenari-tags :as stags]
             [kaocha.testable :as testable]
-            [testit.core :refer :all]))
+            [testit.core :refer :all])
+  (:import (io.cucumber.tagexpressions TagExpressionParser)))
 
 (def side-effect-atom (atom 0))
 (def scenario-side-effect-atom (atom 0))
@@ -275,3 +279,81 @@ Feature: mixed tags
   (krepl/test-plan)
   (krepl/run-all)
   (krepl/run :scenario))
+;; used by the Rule level: a scenario outside any rule, then two rules, one of
+;; which is tagged and described
+(v2/deffeature rules-feature
+  "Feature: rules
+  Scenario: before any rule
+      Then My initial state contains foo
+
+  Rule: first rule
+    Scenario: in the first rule
+        Then My initial state contains foo
+    Scenario: also in the first rule
+        Then My initial state contains foo
+
+  @ruled
+  Rule: second rule
+    what the second rule checks
+    Scenario: in the second rule
+        Then My initial state contains foo"
+  {:default-scenario-state {:foo 1}})
+
+(defn- tree
+  "[type id] of a testable and of its descendants not skipped, depth first."
+  [t]
+  (when-not (::testable/skip t)
+    (cons [(::testable/type t) (::testable/id t)]
+          (mapcat tree (:kaocha.test-plan/tests t)))))
+
+(deftest rule-level-test
+  (let [feature (loaded-feature ::rules-feature)]
+    (testing "a Rule is a group between its feature and its scenarios, and the
+    scenarios keep the ids they had before, so an existing --focus still works"
+      (is (= [[:kaocha.type/scenari-feature ::rules-feature]
+              [:kaocha.type/scenari-scenario :scenari.v2.feature-test.rules-feature/before-any-rule]
+              [:kaocha.type/scenari-rule :scenari.v2.feature-test.rules-feature.rule/first-rule]
+              [:kaocha.type/scenari-scenario :scenari.v2.feature-test.rules-feature/in-the-first-rule]
+              [:kaocha.type/scenari-scenario :scenari.v2.feature-test.rules-feature/also-in-the-first-rule]
+              [:kaocha.type/scenari-rule :scenari.v2.feature-test.rules-feature.rule/second-rule]
+              [:kaocha.type/scenari-scenario :scenari.v2.feature-test.rules-feature/in-the-second-rule]]
+             (tree feature))))
+
+    (testing "--focus <rule-name> runs the scenarios of that rule alone"
+      (is (= [:scenari.v2.feature-test.rules-feature/in-the-first-rule
+              :scenari.v2.feature-test.rules-feature/also-in-the-first-rule]
+             (->> (kfilter/filter-testable feature {:focus [:first-rule]})
+                  tree
+                  (filter #(= :kaocha.type/scenari-scenario (first %)))
+                  (map second)))))
+
+    (testing "--tags on a rule tag keeps that rule; a rule left without scenario
+    is skipped, so the reporter does not announce it"
+      (is (= [[:kaocha.type/scenari-feature ::rules-feature]
+              [:kaocha.type/scenari-rule :scenari.v2.feature-test.rules-feature.rule/second-rule]
+              [:kaocha.type/scenari-scenario :scenari.v2.feature-test.rules-feature/in-the-second-rule]]
+             (tree (stags/filter-testable (TagExpressionParser/parse "@ruled") feature)))))
+
+    (testing "the plugins read every scenario, those of the rules included"
+      (is (= ["before any rule" "in the first rule" "also in the first rule" "in the second rule"]
+             (map ::testable/desc (::sdoc/scenarios (first (sdoc/selected-features
+                                                            {:kaocha.test-plan/tests [{:kaocha.test-plan/tests [feature]}]})))))))
+
+    (testing "running the feature announces each rule once, and counts its scenarios"
+      (let [events (atom [])
+            result (binding [t/report #(swap! events conj %)]
+                     (testable/-run feature {}))]
+        (is (= ["first rule" "second rule"]
+               (map (comp :name :rule) (filter #(= :begin-rule (:type %)) @events))))
+        (is (= 4 (count (filter #(= :kaocha.type/scenari-scenario (::testable/type %))
+                                (testable/test-seq result)))))))))
+
+(deftest rule-in-clojure-test-runner-test
+  (testing "the clojure.test runner prints the rule, its tags and its
+  description once, above its scenarios"
+    (let [out (binding [t/*test-out* (java.io.StringWriter.)]
+                (sc-test/run-features #'rules-feature)
+                (str t/*test-out*))
+          out (string/replace out #"\u001b\[[0-9;]*m" "")]
+      (is (= 1 (count (re-seq #"Rule : first rule" out))))
+      (is (string/includes? out "@ruled\nRule : second rule\n  what the second rule checks")))))
