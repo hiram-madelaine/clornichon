@@ -8,7 +8,7 @@
            (io.cucumber.tagexpressions Expression TagExpressionParser)
            (io.cucumber.messages.types Envelope Source SourceMediaType StepKeywordType)
            (java.io File)
-           (java.util Optional UUID)
+           (java.util Optional)
            (org.apache.commons.io FileUtils)))
 
 ;; ------------------------
@@ -89,16 +89,16 @@
 ;; ------------------------
 
 (def ^:private gherkin-parser
-  (-> (GherkinParser/builder) (.includeSource false) (.build)))
+  (-> (GherkinParser/builder) (.build)))
 
 (defn- envelopes
   "Parse `source` with the official gherkin parser. It yields a GherkinDocument -
   the syntax tree - followed by one *pickle* per runnable scenario: Background
   splicing, Rule flattening, tag inheritance and Scenario Outline expansion are
   all done there, so nothing downstream has to know those constructs exist."
-  [source]
+  [source uri]
   (let [stream (.parse gherkin-parser
-                       (Envelope/of (Source. "feature" source SourceMediaType/TEXT_X_CUCUMBER_GHERKIN_PLAIN)))
+                       (Envelope/of (Source. uri source SourceMediaType/TEXT_X_CUCUMBER_GHERKIN_PLAIN)))
         envs   (doall (iterator-seq (.iterator stream)))]
     (when-let [err (some #(opt (.getParseError %)) envs)]
       (throw (ex-info (str "Cannot parse feature:\n" (.getMessage err))
@@ -168,7 +168,8 @@
         ;; le bloc - datatable ou docstring - ne dépend pas du glue, et le
         ;; squelette proposé pour un step manquant compte dessus pour son arité
         block    (vec (argument->params (opt (.getArgument step))))
-        step-map {:sentence-keyword kw
+        step-map {:id               (.getId step)
+                  :sentence-keyword kw
                   :sentence         sentence
                   :raw              (str (string/capitalize (name kw)) " " sentence)
                   :order            order
@@ -195,36 +196,42 @@
                               (throw (ex-info (str "hook " f " : " (.getMessage e))
                                               {:hook f :tags (:scenari/tags m)} e))))))))
 
-(defn ->feature-ast [source {:keys [pre-run post-run pre-scenario-run post-scenario-run default-scenario-state] :as _options} ns-feature]
-  (let [envs    (envelopes source)
-        doc     (some #(opt (.getGherkinDocument %)) envs)
-        feature (some-> doc .getFeature opt)
-        _       (when feature (check-empty-examples! feature source))
-        ast     (if feature (feature-nodes feature) {})
-        ->hooks (fn [fns] (mapv ->hook fns))
-        scenarios
-        (for [pickle (keep #(opt (.getPickle %)) envs)]
-          (cond-> {:id            (.toString (UUID/randomUUID))
-                   :scenario-name (.getName pickle)
-                   :annotations   (tag-names (.getTags pickle))
-                   :pre-run       (->hooks pre-scenario-run)
-                   :post-run      (->hooks post-scenario-run)
-                   :default-state (or default-scenario-state {})
-                   :steps         (vec (map-indexed
-                                        (fn [i step] (pickle-step->map ast i step ns-feature))
-                                        (.getSteps pickle)))}
-            (:description (some ast (.getAstNodeIds pickle)))
-            (assoc :description (:description (some ast (.getAstNodeIds pickle))))))]
-    (when (empty? scenarios)
-      (throw (ex-info (str "Feature has no scenario. Lines whose keyword is not recognized "
-                           "are parsed as free description:\n" (some-> feature .getDescription))
-                      {:source source})))
-    (cond-> {:scenarios (vec scenarios)
-             :pre-run   (->hooks pre-run)
-             :post-run  (->hooks post-run)}
-      feature (assoc :feature (.getName feature))
-      (some-> feature .getTags seq) (assoc :annotations (tag-names (.getTags feature)))
-      (some-> feature .getDescription dedent) (assoc :description (dedent (.getDescription feature))))))
+(defn ->feature-ast
+  "`uri` names the feature in the cucumber messages - the file it was read from."
+  ([source options ns-feature] (->feature-ast source options ns-feature "feature"))
+  ([source {:keys [pre-run post-run pre-scenario-run post-scenario-run default-scenario-state] :as _options} ns-feature uri]
+   (let [envs    (envelopes source uri)
+         doc     (some #(opt (.getGherkinDocument %)) envs)
+         feature (some-> doc .getFeature opt)
+         _       (when feature (check-empty-examples! feature source))
+         ast     (if feature (feature-nodes feature) {})
+         ->hooks (fn [fns] (mapv ->hook fns))
+         scenarios
+         (for [pickle (keep #(opt (.getPickle %)) envs)]
+           (cond-> {:id            (.getId pickle)
+                    :scenario-name (.getName pickle)
+                    :annotations   (tag-names (.getTags pickle))
+                    :pre-run       (->hooks pre-scenario-run)
+                    :post-run      (->hooks post-scenario-run)
+                    :default-state (or default-scenario-state {})
+                    :steps         (vec (map-indexed
+                                         (fn [i step] (pickle-step->map ast i step ns-feature))
+                                         (.getSteps pickle)))}
+             (:description (some ast (.getAstNodeIds pickle)))
+             (assoc :description (:description (some ast (.getAstNodeIds pickle))))))]
+     (when (empty? scenarios)
+       (throw (ex-info (str "Feature has no scenario. Lines whose keyword is not recognized "
+                            "are parsed as free description:\n" (some-> feature .getDescription))
+                       {:source source})))
+     (cond-> {:scenarios (vec scenarios)
+              :pre-run   (->hooks pre-run)
+              :post-run  (->hooks post-run)
+              ;; source, GherkinDocument et pickles, tels que le parser les
+              ;; émet : le début du flux cucumber-messages d'un run
+              :messages  envs}
+       feature (assoc :feature (.getName feature))
+       (some-> feature .getTags seq) (assoc :annotations (tag-names (.getTags feature)))
+       (some-> feature .getDescription dedent) (assoc :description (dedent (.getDescription feature)))))))
 
 ;; ------------------------
 ;;          RUN
@@ -234,6 +241,7 @@
   (binding [clojure.test/*report-counters* (ref clojure.test/*initial-report-counters*)]
     (let [f (get-in step [:glue :ref])
           params (cons scenario-state (mapv :val (get step :params)))
+          started-at (System/currentTimeMillis)
           t0 (System/nanoTime)]
       (try (when-not f
              ;; sans glue, `(apply nil ...)` levait une NPE qui ne dit pas quel
@@ -254,13 +262,13 @@
              (-> step
                  (assoc :input-state scenario-state)
                  (assoc :output-state state)
-                 (assoc :duration-ns (- (System/nanoTime) t0))
+                 (assoc :started-at started-at :duration-ns (- (System/nanoTime) t0))
                  (assoc :status (if any-fail? :fail :success))))
            (catch Throwable e
              (-> step
                  (assoc :input-state scenario-state)
                  (assoc :exception e)
-                 (assoc :duration-ns (- (System/nanoTime) t0))
+                 (assoc :started-at started-at :duration-ns (- (System/nanoTime) t0))
                  (assoc :status :fail)))))))
 
 (defn run-steps [steps state [step & others]]
@@ -308,12 +316,14 @@
   (if (some #(= :fail (:status %)) steps) :fail :success))
 
 (defn run-scenario [scenario]
-  (let [pending-steps (map #(assoc % :status :pending) (:steps scenario))
+  (let [started-at (System/currentTimeMillis)
+        pending-steps (map #(assoc % :status :pending) (:steps scenario))
         result-steps (run-hooks scenario
                                 #(run-steps pending-steps (:default-state scenario) pending-steps)
                                 steps-status)]
     (-> scenario
         (assoc :steps result-steps)
+        (assoc :started-at started-at :finished-at (System/currentTimeMillis))
         (assoc :status (steps-status result-steps)))))
 
 (defn run-scenarios [scenarios [scenario & others]]
@@ -341,7 +351,9 @@
   (let [feature# `~(eval feature)
         name# `~(if (symbol? name) name (eval name))
         source# (read-source feature#)
-        feature-ast# `(->feature-ast ~source# ~options *ns*)]
+        ;; un texte inline revient tel quel de read-source : il n'a pas de fichier
+        uri# (if (= source# feature#) (str *ns* "/" name#) (str feature#))
+        feature-ast# `(->feature-ast ~source# ~options *ns* ~uri#)]
     `(do
        (ns-unmap *ns* '~name#)
        (require '[scenari.v2.test])

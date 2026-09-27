@@ -11,14 +11,14 @@ Gaps against Cucumber, roughly by value/effort.
 
 * [x] `--dry-run`, through `:kaocha.plugin/scenari-dry-run`: lists the steps that resolve no glue, and with `--unused-glues` the glues no scenario uses, without running anything
 * [x] an unresolved step fails with its sentence and a skeleton, not the NPE `run-step` raised by calling `(apply nil ...)`
-* [ ] a distinct `:undefined` status, which cucumber-messages will need
+* [ ] a distinct `:undefined` status in the result; cucumber-messages reads it from the missing glue meanwhile
 * [ ] stop-on-failure? as an option for execution
 * [ ] rerun only the scenarios that failed, `--retry n` for flaky ones
 
 ## Reporting
 
 * [x] measure step durations (`:duration-ns`) and report the slowest glues with `--slowest-steps N`; scenario durations come from kaocha's profiling plugin
-* [ ] cucumber-messages / JSON output, the interchange format the whole ecosystem reads (Allure, Cucumber Reports, CI). The parser already speaks it: a feature is read as `Envelope` messages, only the run needs to emit its own
+* [x] cucumber-messages NDJSON output, the interchange format the whole ecosystem reads, with `--cucumber-messages FILE` through `:kaocha.plugin/scenari-messages`
 * [ ] usage report: which glues ran, which are dead
 * [ ] attachments (screenshots) from a step or a hook
 

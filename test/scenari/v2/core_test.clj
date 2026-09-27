@@ -11,6 +11,7 @@
             [kaocha.plugin.scenari-doc :as sdoc]
             [kaocha.plugin.scenari-dry-run :as sdry]
             [kaocha.plugin.scenari-slowest-steps :as sslow]
+            [kaocha.plugin.scenari-messages :as smsg]
             [kaocha.repl :as krepl]
             [testit.core :refer :all])
   (:import [io.cucumber.tagexpressions TagExpressionParser]))
@@ -442,3 +443,42 @@
   (t/testing "un nom invalide lève à la définition et laisse le registre intact"
     (is (thrown? Exception (v2/define-parameter-type! "pas{bon" #"x" identity)))
     (is (= ["12 EUROS"] (glue/step-args {:step "un livre à {prix}"} "un livre à 12 euros")))))
+
+(v2/defgiven "un panier de {int} article(s)" [state n] (assoc state :n n))
+
+(t/deftest scenari-messages-test
+  (let [ast      (v2/->feature-ast "Feature: f
+Scenario: vert
+Given un panier de 2 articles
+Scenario: indéfini
+Given un panier de 1 article
+When personne ne l'a écrit
+Given un panier de 3 articles
+Scenario: filtré
+Given un panier de 1 article
+" {} *ns* "f.feature")
+        [vert indefini filtre] (map v2/run-scenario (:scenarios ast))
+        result   {:kaocha.result/tests
+                  [{:kaocha.result/tests
+                    [{::testable/type                   :kaocha.type/scenari-feature
+                      :kaocha.type.scenari/messages     (:messages ast)
+                      :kaocha.result/tests [vert indefini (assoc filtre ::testable/skip true)]}]}]}
+        envs     (smsg/envelopes result 1000 2000)
+        ndjson   (let [w (java.io.StringWriter.)]
+                   (doseq [e envs] (smsg/write-json w e) (.write w "\n"))
+                   (str w))
+        types    (map #(second (re-find #"^\{\"(\w+)\"" %)) (string/split-lines ndjson))
+        results  (keep #(get-in % [:testStepFinished :testStepResult :status]) envs)]
+    (t/testing "le flux suit l'ordre du protocole, et un scénario filtré n'y a pas de pickle"
+      (is (= ["meta" "source" "gherkinDocument" "pickle" "pickle" "stepDefinition"
+              "testRunStarted" "testCase" "testCase"]
+             (take 9 types)))
+      (is (= "testRunFinished" (last types))))
+    (t/testing "un step sans glue est UNDEFINED, ceux qui suivent SKIPPED"
+      (is (= ["PASSED" "PASSED" "UNDEFINED" "SKIPPED"] results)))
+    (t/testing "chaque capture est un StepMatchArgument, pour que les rapports la surlignent"
+      (is (string/includes? ndjson "{\"group\":{\"children\":[],\"start\":13,\"value\":\"2\"},\"parameterTypeName\":\"int\"}")))
+    (t/testing "le json échappe guillemets, antislash et caractères de contrôle"
+      (let [w (java.io.StringWriter.)]
+        (smsg/write-json w {:a "x\"y\\z\n" :b nil :c [1 true]})
+        (is (= "{\"a\":\"x\\\"y\\\\z\\u000a\",\"c\":[1,true]}" (str w)))))))

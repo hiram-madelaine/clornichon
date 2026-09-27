@@ -57,7 +57,8 @@ Declare a suite of type `:kaocha.type/scenari` in `tests.edn`:
  :kaocha/plugins [:kaocha.plugin/scenari-tags
                   :kaocha.plugin/scenari-doc
                   :kaocha.plugin/scenari-dry-run
-                  :kaocha.plugin/scenari-slowest-steps]}
+                  :kaocha.plugin/scenari-slowest-steps
+                  :kaocha.plugin/scenari-messages]}
 ```
 
 Each feature and each scenario is a node of the Kaocha tree. A scenario's id is qualified by its feature, `:my.ns.my-feature/scenario-name`; the bare name stays an alias for `--focus`.
@@ -67,7 +68,7 @@ Each feature and each scenario is a node of the Kaocha tree. A scenario's id is 
 (krepl/run :scenario)
 ```
 
-The four plugins are optional. `scenari-doc` and `scenari-dry-run` read the test plan once filtered, so list them after `scenari-tags`.
+The five plugins are optional. `scenari-doc` and `scenari-dry-run` read the test plan once filtered, so list them after `scenari-tags`.
 
 ### Filtering by tag
 
@@ -109,6 +110,30 @@ bin/kaocha --dry-run --unused-glues
 ```bash
 bin/kaocha --slowest-steps 10
 ```
+
+### Cucumber messages
+
+`:kaocha.plugin/scenari-messages` adds `--cucumber-messages FILE`: after the run, it writes it as a [cucumber-messages](https://github.com/cucumber/messages) NDJSON stream, the format every Cucumber formatter reads -- one envelope per line: the sources, their Gherkin documents and pickles, the step definitions, then one test case per scenario with each step's status (`PASSED`, `FAILED`, `SKIPPED` after a failure, `UNDEFINED` without a glue), duration and captured arguments.
+
+```bash
+bin/kaocha --cucumber-messages target/messages.ndjson
+```
+
+Only the scenarios kept by the filters are written. For instance, Cucumber's own HTML report, from `npm install @cucumber/html-formatter @cucumber/message-streams`:
+
+```js
+// node to-html.mjs target/messages.ndjson report.html
+import fs from 'node:fs'
+import { pipeline } from 'node:stream'
+import { NdjsonToMessageStream } from '@cucumber/message-streams'
+import { CucumberHtmlStream } from '@cucumber/html-formatter'
+const dist = 'node_modules/@cucumber/html-formatter/dist'
+pipeline(fs.createReadStream(process.argv[2]), new NdjsonToMessageStream(),
+  new CucumberHtmlStream(`${dist}/main.css`, `${dist}/main.js`),
+  fs.createWriteStream(process.argv[3]), err => err && console.error(err))
+```
+
+A step failing on an `is` carries no detail in the stream -- just `A clojure.test assertion failed` -- since its report already went to Kaocha's reporter; a step that throws carries its exception.
 
 ### HTML documentation
 

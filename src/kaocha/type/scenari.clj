@@ -91,7 +91,7 @@
 (defmethod testable/-load :kaocha.type/scenari [testable]
   (require-all-ns (::glue-paths testable))
   (let [tests (for [test-path (:kaocha/test-paths testable)
-                    {{:keys [feature scenarios pre-run post-run annotations description]} :scenari/feature-ast
+                    {{:keys [feature scenarios pre-run post-run annotations description messages]} :scenari/feature-ast
                      :as                                             feature-meta} (find-features-meta-in-dir test-path)
                     :let [feature-id (keyword (str (:ns feature-meta)) (str (:name feature-meta)))]]
                 {::testable/type         :kaocha.type/scenari-feature
@@ -106,6 +106,7 @@
                  :kaocha.test-plan/tests (with-unique-ids (map #(scenario->testable feature-id %) scenarios))
                  ::annotations           annotations
                  ::description           description
+                 ::messages              messages
                  ::pre-run               pre-run
                  ::post-run              post-run})]
     (assoc testable :kaocha.test-plan/tests tests)))
