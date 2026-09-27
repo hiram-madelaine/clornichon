@@ -219,7 +219,8 @@
 (defn run-step [step scenario-state]
   (binding [clojure.test/*report-counters* (ref clojure.test/*initial-report-counters*)]
     (let [f (get-in step [:glue :ref])
-          params (cons scenario-state (mapv :val (get step :params)))]
+          params (cons scenario-state (mapv :val (get step :params)))
+          t0 (System/nanoTime)]
       (try (when-not f
              ;; sans glue, `(apply nil ...)` levait une NPE qui ne dit pas quel
              ;; step manque ni quoi écrire
@@ -239,11 +240,13 @@
              (-> step
                  (assoc :input-state scenario-state)
                  (assoc :output-state state)
+                 (assoc :duration-ns (- (System/nanoTime) t0))
                  (assoc :status (if any-fail? :fail :success))))
            (catch Throwable e
              (-> step
                  (assoc :input-state scenario-state)
                  (assoc :exception e)
+                 (assoc :duration-ns (- (System/nanoTime) t0))
                  (assoc :status :fail)))))))
 
 (defn run-steps [steps state [step & others]]

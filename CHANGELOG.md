@@ -3,6 +3,13 @@ All notable changes to this project will be documented in this file. This change
 
 # [Unreleased] #
 
+## Added ##
+
+Every step run carries its `:duration-ns`, the time its glue took. The new
+kaocha plugin `:kaocha.plugin/scenari-slowest-steps` adds `--slowest-steps N`,
+which prints after the run the N step definitions that took the most time, all
+their calls added up.
+
 # [0.1.3] - 2026-09-27 #
 
 ## Changed ##

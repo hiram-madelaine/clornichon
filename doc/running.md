@@ -56,7 +56,8 @@ Declare a suite of type `:kaocha.type/scenari` in `tests.edn`:
           :kaocha.type.scenari/glue-paths ["test/scenario/glue"]}]
  :kaocha/plugins [:kaocha.plugin/scenari-tags
                   :kaocha.plugin/scenari-doc
-                  :kaocha.plugin/scenari-dry-run]}
+                  :kaocha.plugin/scenari-dry-run
+                  :kaocha.plugin/scenari-slowest-steps]}
 ```
 
 Each feature and each scenario is a node of the Kaocha tree. A scenario's id is qualified by its feature, `:my.ns.my-feature/scenario-name`; the bare name stays an alias for `--focus`.
@@ -66,7 +67,7 @@ Each feature and each scenario is a node of the Kaocha tree. A scenario's id is 
 (krepl/run :scenario)
 ```
 
-The three plugins are optional. `scenari-doc` and `scenari-dry-run` read the test plan once filtered, so list them after `scenari-tags`.
+The four plugins are optional. `scenari-doc` and `scenari-dry-run` read the test plan once filtered, so list them after `scenari-tags`.
 
 ### Filtering by tag
 
@@ -99,6 +100,14 @@ Two differences worth knowing: `--focus-meta` also reads the var metadata of a `
 
 ```bash
 bin/kaocha --dry-run --unused-glues
+```
+
+### Slowest step definitions
+
+`:kaocha.plugin/scenari-slowest-steps` adds `--slowest-steps N`: after the run, it prints the N step definitions that took the most time, all their calls added up, with their call count and their slowest call. Grouped by glue rather than by step, since a slow glue is spread over every scenario that calls it. The time per scenario is what kaocha's own `:kaocha.plugin/profiling` reports.
+
+```bash
+bin/kaocha --slowest-steps 10
 ```
 
 ### HTML documentation

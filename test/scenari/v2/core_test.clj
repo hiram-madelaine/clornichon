@@ -10,6 +10,7 @@
             [kaocha.plugin.scenari-tags :as stags]
             [kaocha.plugin.scenari-doc :as sdoc]
             [kaocha.plugin.scenari-dry-run :as sdry]
+            [kaocha.plugin.scenari-slowest-steps :as sslow]
             [kaocha.repl :as krepl]
             [testit.core :refer :all])
   (:import [io.cucumber.tagexpressions TagExpressionParser]))
@@ -392,6 +393,30 @@
     (is (thrown? Exception (sdry/scenari-dry-run-pre-load-hook
                             {::sdry/enabled? true ::sdoc/report-file "a.html"})))
     (is (= {::sdry/enabled? true} (sdry/scenari-dry-run-pre-load-hook {::sdry/enabled? true})))))
+
+(t/deftest scenari-slowest-steps-test
+  (t/testing "run-step mesure le glue, qu'il réussisse ou lève"
+    (is (nat-int? (:duration-ns (v2/run-step {:glue {:ref (fn [s] [s])}} {}))))
+    (is (nat-int? (:duration-ns (v2/run-step {:glue {:ref (fn [_] (throw (ex-info "boom" {})))}} {})))))
+
+  (t/testing "les durées s'additionnent par glue, le plus coûteux en tête ; un
+  step jamais lancé ne compte pas"
+    (let [fast   {:ref :fast :ns 'n :name 'fast :step "fast"}
+          slow   {:ref :slow :ns 'n :name 'slow :step "slow"}
+          result {:kaocha.result/tests
+                  [{:kaocha.result/tests
+                    [{::testable/type :kaocha.type/scenari-feature
+                      :kaocha.result/tests
+                      [{:steps [{:glue fast :duration-ns 1000000}
+                                {:glue slow :duration-ns 5000000}
+                                {:glue fast :duration-ns 3000000}]}
+                       {:steps [{:glue slow :duration-ns 2000000}
+                                {:glue fast :status :pending}]}]}]}]}
+          glues  (sslow/slowest-glues result 10)]
+      (is (= [[:slow 2 7000000 5000000] [:fast 2 4000000 3000000]]
+             (map (juxt (comp :ref :glue) :calls :total-ns :max-ns) glues)))
+      (is (= 1 (count (sslow/slowest-glues result 1))))
+      (is (string/includes? (sslow/report glues) "7.0 ms")))))
 
 (t/deftest alternation-var-name-test
   (t/testing "l'alternance met une barre oblique dans le nom du var, ce qui en

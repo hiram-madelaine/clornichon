@@ -26,7 +26,7 @@ Règles :
 | 2  | Retirer les dépendances inutilisées               | 1   | communauté | FAIT | `tools.namespace` gardé : utilisé |
 | 3  | CI GitHub Actions                                 | 1   | communauté | FAIT | 1er run vert sur la PR #1 |
 | R1 | Release 0.1.3                                     | 1   | les deux   | FAIT | publiée sur Clojars, tag `v0.1.3` |
-| 4  | Durées step/scénario + rapport « slowest steps »  | 2   | Electre    | TODO |       |
+| 4  | Durées step/scénario + rapport « slowest steps »  | 2   | Electre    | EN COURS | codé ; reste la mesure sur Electre (schéma local à migrer) |
 | 5  | Hooks reçoivent le scénario + hooks par tag       | 2   | Electre    | TODO |       |
 | 6  | Sortie cucumber-messages (NDJSON)                 | 3   | communauté | TODO |       |
 | 7  | Types de paramètres custom publics                | 3   | communauté | TODO |       |
@@ -52,11 +52,15 @@ exit 0, `target/junit.xml` à 0 échec). `.gitignore` ignorait `.*` : exception 
 Pas d'entrée CHANGELOG (rien ne change pour les utilisateurs de la lib).
 Premier run vert sur la PR #1 (21 s).
 
-### 4. Durées + slowest steps
-`System/nanoTime` autour de `apply f` dans `run-step`, stocké en `:duration-ns` sur le
-step. Plugin kaocha `--slowest-steps N` sur le modèle de
-`src/kaocha/plugin/scenari_dry_run.clj`, agrégé par glue.
-Vérif : corpus Electre, durée totale avant/après (overhead négligeable), lecture du top-N.
+### 4. Durées + slowest steps — EN COURS
+Fait : `run-step` pose `:duration-ns` (succès comme échec) ; plugin
+`:kaocha.plugin/scenari-slowest-steps`, `--slowest-steps N`, agrégé par glue (total,
+appels, max). Le temps par scénario reste celui de `:kaocha.plugin/profiling`.
+Test : `scenari-slowest-steps-test` dans `test/scenari/v2/core_test.clj`.
+Reste : mesure sur Electre (`diffusion/backend`, suite `:scenario`, 222 features).
+Référence (scenari `2396ada`) : 57 s, mais 384/392 échecs — schéma Postgres local en
+retard (`account.session_replay` absente) ; il faut `clojure -M:db-migrator` dans
+`bo/backend`, que `test.sh` ne lance qu'en CI.
 
 ### 5. Hooks
 `run-hooks` (`core.clj:252`) appelle `(pre-run-fn)` sans argument : passer le scénario
