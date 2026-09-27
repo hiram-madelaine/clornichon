@@ -10,7 +10,8 @@ Gaps against Cucumber, roughly by value/effort.
 ## Execution
 
 * [x] `--dry-run`, through `:kaocha.plugin/scenari-dry-run`: lists the steps that resolve no glue, and with `--unused-glues` the glues no scenario uses, without running anything
-* [ ] an unresolved step should be `:undefined`, not the NPE `run-step` raises by calling `(apply nil ...)`
+* [x] an unresolved step fails with its sentence and a skeleton, not the NPE `run-step` raised by calling `(apply nil ...)`
+* [ ] a distinct `:undefined` status, which cucumber-messages will need
 * [ ] stop-on-failure? as an option for execution
 * [ ] rerun only the scenarios that failed, `--retry n` for flaky ones
 

@@ -2,7 +2,8 @@
   (:require [clojure.test :as t]
             [clojure.java.io :as io]
             [clojure.string :as string]
-            [scenari.v2.glue :as glue])
+            [scenari.v2.glue :as glue]
+            [scenari.v2.step :refer [generate-step-fn]])
   (:import (io.cucumber.gherkin GherkinParser)
            (io.cucumber.messages.types Envelope Source SourceMediaType StepKeywordType)
            (java.io File)
@@ -219,7 +220,12 @@
   (binding [clojure.test/*report-counters* (ref clojure.test/*initial-report-counters*)]
     (let [f (get-in step [:glue :ref])
           params (cons scenario-state (mapv :val (get step :params)))]
-      (try (let [result (apply f params)
+      (try (when-not f
+             ;; sans glue, `(apply nil ...)` levait une NPE qui ne dit pas quel
+             ;; step manque ni quoi écrire
+             (throw (ex-info (str "Undefined step: " (:raw step) "\n" (generate-step-fn step))
+                             {:step (:raw step)})))
+           (let [result (apply f params)
                  out (last result)
                  ;; Un step qui finit par une assertion ou un effet de bord rend
                  ;; true/false/nil - jamais un etat voulu. Sans ca, un defthen
