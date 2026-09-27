@@ -5,6 +5,12 @@ All notable changes to this project will be documented in this file. This change
 
 ## Fixed ##
 
+`--fail-fast` stops the Kaocha run on the first failed scenario instead of
+crashing it. Kaocha throws a marker from the `is` that fails; it was taken for
+an exception of the step and thrown again out of the run, which ended on
+`Execution error`, without summary, `junit.xml` or report. A step that throws
+no longer ends the run under `--fail-fast` either.
+
 The Kaocha suite loads the namespaces of its `test-paths`, after those of its
 `glue-paths`. It only loaded the glues: with the `tests.edn` of
 `doc/running.md`, where the glues have a directory of their own, the run ended

@@ -43,19 +43,20 @@ Règles :
 | 12 | Un hook qui lève fait échouer son scénario, pas le run      | 5   | critique  | FAIT | PR 1 ; NDJSON : pas d'enveloppe `hook`, voir le détail |
 | 13 | `release.sh` prépare la doc avant de taguer                 | 5   | important | FAIT | PR 2 ; garde-fou, le « Prepare » reste à la main |
 | 14 | `-load` charge aussi les `test-paths`                       | 5   | important | FAIT | PR 2 |
-| R9 | Release 0.1.11 (12, 13, 14)                                 | 5   | —         | TODO | |
+| R9 | Release 0.1.11 (12, 13, 14, 21)                             | 5   | —         | TODO | |
 | 15 | Ordre du fichier dans la doc HTML, fin de `Rule` en console | 5   | important | TODO | |
 | 16 | Retirer `deffeature` sur un répertoire, et commons-io       | 5   | modéré    | TODO | |
 | 17 | Type hints sur le chemin de matching                        | 5   | modéré    | TODO | 765 ms → 105 ms au chargement, banc synthétique |
 | 18 | Hooks globaux ignorés sans rien dire                        | 5   | modéré    | TODO | |
 | 19 | Code mort, features d'exemple hors du jar                   | 5   | ménage    | TODO | |
 | 20 | `doc/development-workflow.md` à jour                        | 5   | mineur    | TODO | |
-| 21 | `--fail-fast` fait tomber le run au premier step en échec   | 5   | important | TODO | trouvé en traitant 12 |
-| R10 | Release 0.1.12 (15 à 21)                                   | 5   | —         | TODO | |
+| 21 | `--fail-fast` fait tomber le run au premier step en échec   | 5   | important | FAIT | PR 3 ; traité avant R9, part donc en 0.1.11 |
+| 22 | Un `is` qui échoue dans un hook laisse le run vert          | 5   | modéré    | TODO | trouvé en traitant 21 |
+| R10 | Release 0.1.12 (15 à 20, 22)                               | 5   | —         | TODO | |
 
 Ordre proposé : 12 (le seul critique), 13 (pour que R9 ne refasse pas l'erreur de
-0.1.10), 14, R9 ; puis 15 à 21 dans l'ordre, R10. Les items 16 à 21 sont indépendants
-les uns des autres et peuvent se prendre dans n'importe quel ordre.
+0.1.10), 14, 21, R9 ; puis 15 à 20 et 22 dans l'ordre, R10. Les items 16 à 22 sont
+indépendants les uns des autres et peuvent se prendre dans n'importe quel ordre.
 
 PR du lot :
 
@@ -63,10 +64,10 @@ PR du lot :
 |----|------------|---------|-------------------|
 | 1  | 12         | 0.1.11  | critique, seul |
 | 2  | 13, 14     | 0.1.11  | petits, même release |
-| 3  | 21         | 0.1.12  | à avancer en 0.1.11 si `--fail-fast` sert en CI — à décider |
+| 3  | 21         | 0.1.11  | seul ; traité avant R9 |
 | 4  | 15         | 0.1.12  | ordre d'affichage, relecture à part |
 | 5  | 16, 17     | 0.1.12  | changements de code modérés, indépendants |
-| 6  | 18, 19, 20 | 0.1.12  | avertissement, ménage, doc |
+| 6  | 18, 19, 20, 22 | 0.1.12 | avertissement, ménage, doc ; 22 va avec 18, deux hooks qui se taisent |
 
 Un item passe à `FAIT` dans le commit de sa PR ; une PR de plusieurs items porte un
 commit par item.
@@ -243,7 +244,7 @@ si l'ordre est inversé, la feature ne requérant pas son glue. Vérifié sur le
 jetable avec le `tests.edn` de la doc.
 
 ### R9. Release 0.1.11
-Après 12, 13 et 14. S'arrêter à la publication Clojars et à la mise à jour de ce plan :
+Après 12, 13, 14 et 21. S'arrêter à la publication Clojars et à la mise à jour de ce plan :
 le bump côté Electre revient à l'agent dédié.
 
 Dans l'ordre : commit « Prepare 0.1.11 » sur `master`, `./release.sh patch` sans
@@ -376,8 +377,34 @@ lève, comme `report-hook-failure` le fait déjà pour un hook.
 Tests : `feature_test.clj`, un scénario rouge sous `testable/*fail-fast?*` lié à `true`
 rend un résultat au lieu de lever. CHANGELOG : `Fixed`.
 
+Fait, et ce qui diffère du correctif prévu : le marqueur est écarté dans
+`core/run-step`, pas dans le `-run` kaocha. Le step est `:fail` sans `:exception`, comme
+pour un `is` qui échoue sans `--fail-fast` : la console, `--doc-report` et le NDJSON
+n'affichent plus le marqueur. Le `:fail` d'un step qui lève porte
+`:kaocha.result/exception`.
+Vérifié sur le projet jetable : `--fail-fast` s'arrête au premier scénario rouge, sur un
+`is` comme sur une exception, avec résumé, `junit.xml` et NDJSON ; sans l'option, rien
+ne change.
+
+### 22. Un `is` qui échoue dans un hook laisse le run vert — modéré
+
+Constat, trouvé en traitant l'item 21 : un `:before-scenario` qui fait
+`(is (= 1 2))`, sans `--fail-fast`. Kaocha affiche `FAIL in ...`, mais le résumé dit
+`0 failures`, le code de sortie est 0 et `junit.xml` porte `failures="0"`. Les steps
+tournent quand même. Sous `--fail-fast` le marqueur de kaocha fait lever le hook, et le
+scénario échoue : ce cas-là est juste.
+
+Où : `-run :kaocha.type/scenari-scenario` tire ses compteurs du `:status` des steps ;
+`core/around` ne connaît d'un hook que ce qu'il lève.
+
+Correctif : dans `around`, lier `*report-counters*` autour de chaque hook, comme
+`run-step` le fait autour d'un glue, et faire d'un `:fail` compté l'échec du hook — une
+`ex-info` qui nomme le hook, notée comme ce qu'il aurait levé.
+Tests : `global_hooks_test.clj`, un hook qui échoue sur un `is` fait échouer son
+scénario dans les trois runners. CHANGELOG : `Fixed`.
+
 ### R10. Release 0.1.12
-Après 15 à 20. Peut se scinder si un item traîne.
+Après 15 à 20 et 22. Peut se scinder si un item traîne.
 
 ## Vérifié par l'audit, rien à faire
 

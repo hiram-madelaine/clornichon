@@ -6,6 +6,7 @@
             [kaocha.type.scenari]
             [scenari.v2.some-glue-ns]
             [kaocha.repl :as krepl]
+            [kaocha.report]
             [kaocha.plugin.filter :as kfilter]
             [kaocha.plugin.scenari-doc :as sdoc]
             [kaocha.plugin.scenari-tags :as stags]
@@ -171,6 +172,48 @@ Feature: mixed tags
         (testable/-run scenario {}))
       (is (= 1 (count (filter #(and (= :fail (:type %)) (instance? Throwable (:actual %)))
                               @events)))))))
+
+(v2/defthen "the assertion fails" [_] (is (= 1 2)))
+
+(defn- run-failing-fast
+  "A scenario of one step, run by kaocha as under --fail-fast: [result events],
+  or what -run threw. The reporter does what kaocha's chain does - count, then
+  throw its marker on a failure it has not been told is handled."
+  [step]
+  (let [events   (atom [])
+        scenario (-> (v2/->feature-ast (str "Feature: f\n  Scenario: s\n    " step) {} *ns*)
+                     :scenarios
+                     first
+                     (merge {:kaocha.testable/type :kaocha.type/scenari-scenario
+                             :kaocha.testable/id   ::failing-fast}))]
+    (binding [testable/*fail-fast?* true
+              ;; the failures counted here are not those of this test
+              t/*report-counters*   (ref t/*initial-report-counters*)
+              t/report              (fn [m]
+                                      (swap! events conj m)
+                                      (kaocha.report/report-counters m)
+                                      (kaocha.report/fail-fast m))]
+      [(testable/-run scenario {}) @events])))
+
+(defn- fail-events [events]
+  (filter #(#{:fail :error} (:type %)) events))
+
+(deftest fail-fast-test
+  (testing "under --fail-fast kaocha throws a marker from the `is` that fails:
+  it is not the exception of the step, and must not end the run - kaocha stops
+  by itself on a failed result"
+    (let [[result events] (run-failing-fast "Then the assertion fails")]
+      (is (= 1 (:kaocha.result/fail result)))
+      (is (= [:fail] (map :status (:steps result))))
+      (is (nil? (:exception (first (:steps result)))))
+      (is (= ['(= 1 2)] (map :expected (fail-events events)))
+          "the failed assertion, and no step reported as throwing")))
+
+  (testing "a step that throws fails the scenario under --fail-fast too: its
+  failure is reported as handled, the marker is not thrown on it"
+    (let [[result events] (run-failing-fast "When the step blows up")]
+      (is (= 1 (:kaocha.result/fail result)))
+      (is (= ["boom"] (map (comp ex-message :actual) (fail-events events)))))))
 
 (deftest undefined-step-names-the-step-test
   (testing "a step without glue fails with its sentence and a skeleton, not the

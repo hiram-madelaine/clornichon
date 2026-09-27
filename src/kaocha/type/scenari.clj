@@ -231,7 +231,9 @@
           (t/do-report {:type     :fail
                         :message  (str "Step threw: " (:raw step))
                         :expected "the step to return"
-                        :actual   e}))))
+                        :actual   e
+                        ;; caught and counted, as in report-hook-failure
+                        :kaocha.result/exception e}))))
     ;; a hook that threw - the scenario's or its feature's - fails the scenario
     (some->> (:exception testable) (report-hook-failure (:scenario-name testable)))
     (-> testable
