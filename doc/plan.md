@@ -44,7 +44,7 @@ Règles :
 | 13 | `release.sh` prépare la doc avant de taguer                 | 5   | important | FAIT | PR 2 ; garde-fou, le « Prepare » reste à la main |
 | 14 | `-load` charge aussi les `test-paths`                       | 5   | important | FAIT | PR 2 |
 | R9 | Release 0.1.11 (12, 13, 14, 21)                             | 5   | —         | TODO | |
-| 15 | Ordre du fichier dans la doc HTML, fin de `Rule` en console | 5   | important | TODO | |
+| 15 | Ordre du fichier dans la doc HTML, fin de `Rule` en console | 5   | important | FAIT | PR 4 |
 | 16 | Retirer `deffeature` sur un répertoire, et commons-io       | 5   | modéré    | TODO | |
 | 17 | Type hints sur le chemin de matching                        | 5   | modéré    | TODO | 765 ms → 105 ms au chargement, banc synthétique |
 | 18 | Hooks globaux ignorés sans rien dire                        | 5   | modéré    | TODO | |
@@ -273,6 +273,17 @@ Correctif :
 
 Tests : le document est le même pour deux graines ; le rapport d'une règle suivie d'un
 scénario libre. CHANGELOG : `Fixed`.
+
+Fait, et ce qui diffère du correctif prévu :
+- le tri est dans `scenari-doc/document`, pas dans `selected-features`. Le plan disait
+  que les autres lecteurs se moquent de l'ordre : c'est faux pour le flux
+  cucumber-messages, qui doit rester dans l'ordre où les choses se sont passées ;
+- les features sont triées par namespace puis par ligne, pas par id : dans un même
+  namespace c'est l'ordre du fichier, comme pour les hooks globaux ;
+- le runner `clojure.test` émet `:end-rule` lui aussi.
+
+Vérifié sur le projet jetable, six graines : un seul document `--doc-html`, un seul
+`--doc-report` ; en console la règle est fermée avant le scénario libre qui la suit.
 
 ### 16. Retirer `deffeature` sur un répertoire, et commons-io — modéré
 

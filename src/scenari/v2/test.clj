@@ -111,6 +111,11 @@
       (println desc))
     (println)))
 
+(defmethod t/report :end-rule [{{:keys [name]} :rule}]
+  (t/with-test-out
+    (println (utils/color-str :grey "End of rule : " name))
+    (println)))
+
 (defmethod t/report :begin-scenario [{:keys [scenario]}]
   (t/with-test-out
     (t/inc-report-counter :test)
@@ -180,7 +185,10 @@
                          :feature     feature
                          :annotations annotations
                          :description description})
-           (doseq [[previous scenario] (map vector (cons nil scenarios) scenarios)]
+           (doseq [[previous scenario following] (map vector
+                                                      (cons nil scenarios)
+                                                      scenarios
+                                                      (concat (rest scenarios) [nil]))]
              (when (and (:rule scenario) (not= (:rule previous) (:rule scenario)))
                (t/do-report {:type :begin-rule, :rule (:rule scenario)}))
              (t/do-report {:type :begin-scenario, :scenario scenario})
@@ -215,7 +223,9 @@
                  (t/do-report {:type :hook-failed, :exception hook-exception}))
                (if (and steps-passed? (not hook-exception))
                  (t/do-report {:type :scenario-succeed, :scenario scenario})
-                 (t/do-report {:type :scenario-failed, :scenario scenario}))))
+                 (t/do-report {:type :scenario-failed, :scenario scenario})))
+             (when (and (:rule scenario) (not= (:rule scenario) (:rule following)))
+               (t/do-report {:type :end-rule, :rule (:rule scenario)})))
            (t/do-report {:type :end-feature, :feature feature :succeed? @*feature-succeed*})))))))
 
 (defn run-features

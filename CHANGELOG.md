@@ -5,6 +5,14 @@ All notable changes to this project will be documented in this file. This change
 
 ## Fixed ##
 
+`--doc-html` and `--doc-report` write the features and the scenarios in the
+order of their files. They followed the order Kaocha's `randomize` plugin, on
+by default, gave the run: the document changed at each run.
+
+The console prints `End of rule : <name>` under the scenarios of a `Rule`.
+Nothing told where a rule ended, and a scenario of no rule that Kaocha ran
+after it read as part of it.
+
 `--fail-fast` stops the Kaocha run on the first failed scenario instead of
 crashing it. Kaocha throws a marker from the `is` that fails; it was taken for
 an exception of the step and thrown again out of the run, which ended on
