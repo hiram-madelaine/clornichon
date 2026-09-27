@@ -411,6 +411,10 @@ construit sans l'étape d'installation : `./build.sh` installe aussi le jar dans
 qualified ... enlive` qui reste vient de `~/.clojure/deps.edn`, pas du repo.
 Electre n'appelle rien de `scenari.utils`.
 
+Revu après la fusion de la PR 6 : le code mort de `scenari.utils` a son entrée
+`Changed`, dans une PR à part. Les huit vars retirées étaient publiques, un projet
+tiers pouvait les appeler.
+
 ### 20. `doc/development-workflow.md` à jour — mineur
 
 - « must return the (possibly modified) state » contredit la règle nil/booléen de 0.1.1 ;

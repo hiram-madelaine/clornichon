@@ -59,6 +59,12 @@ example features at the root of the classpath -- `atm.feature`,
 `(deffeature x "calculator.feature")` in a project could read the one of the
 library instead of its own.
 
+`scenari.utils` loses the helpers nothing called since the parser is
+Cucumber's: `contextual-eval`, `local-context`, `readr`, `break-with-repl`,
+`get-whole-in`, `get-in-tree`, `digits-only?` and `number-value-of`. A project
+that called one of them must now carry it itself. The namespace keeps
+`ansi-code` and `color-str`.
+
 Loading a large suite is faster: matching a step against a glue no longer goes
 through reflection. It is done for every step and every glue, when the
 features are parsed. On a synthetic bench of 3,400 steps against 440 glues the
