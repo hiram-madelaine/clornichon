@@ -24,7 +24,9 @@
                 :version   version
                 :basis     basis
                 :src-dirs  ["src"]
-                :pom-data  [[:licenses
+                :pom-data  [[:description "BDD for Clojure: Gherkin specifications executed by Clojure, with Cucumber's parser and expressions, clojure.test and Kaocha."]
+                            [:url "https://github.com/hiram-madelaine/clornichon"]
+                            [:licenses
                              [:license
                               [:name "MIT License"]
                               [:url "https://opensource.org/licenses/MIT"]]]]

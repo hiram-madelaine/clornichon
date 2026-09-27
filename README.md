@@ -5,12 +5,12 @@
   </picture>
 </p>
 
-# Clornichon - Gherkin specifications, executed by Clojure
+# Clornichon - BDD for Clojure: Gherkin specifications, executed by Clojure
 
 [![Clojars Project](https://img.shields.io/clojars/v/io.github.hiram-madelaine/clornichon.svg)](https://clojars.org/io.github.hiram-madelaine/clornichon)
 [![cljdoc](https://cljdoc.org/badge/io.github.hiram-madelaine/clornichon)](https://cljdoc.org/d/io.github.hiram-madelaine/clornichon)
 
-*Clornichon* = **Clo**jure + **cornichon**, the French gherkin. Write your specifications in plain [Gherkin](https://cucumber.io/docs/gherkin/) (Given/When/Then), bind each step to a Clojure function, run them with `clojure.test` or [Kaocha](https://github.com/lambdaisland/kaocha).
+*Clornichon* = **Clo**jure + **cornichon**, the French gherkin. A Behavior-Driven Development (BDD) library for Clojure: write your specifications in plain [Gherkin](https://cucumber.io/docs/gherkin/) (Given/When/Then), bind each step to a Clojure function, run them with `clojure.test` or [Kaocha](https://github.com/lambdaisland/kaocha).
 
 * **Cucumber's own parser**: feature files are read by [`io.cucumber/gherkin`](https://github.com/cucumber/gherkin), the reference implementation -- ~70 languages, `Rule`, `Background`, `Scenario Outline`, tags, datatables and doc strings.
 * **Cucumber expressions**: `"I add {int} items to the {string} cart"`, or a plain regex when you need one. A missing step prints the glue skeleton to paste.
