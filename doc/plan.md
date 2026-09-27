@@ -52,8 +52,8 @@ Règles :
 | 20 | `doc/development-workflow.md` à jour                        | 5   | mineur    | FAIT | PR 6 |
 | 21 | `--fail-fast` fait tomber le run au premier step en échec   | 5   | important | FAIT | PR 3 ; traité avant R9, part donc en 0.1.11 |
 | 22 | Un `is` qui échoue dans un hook laisse le run vert          | 5   | modéré    | FAIT | PR 6 ; trouvé en traitant 21 ; dans `call-hook`, `:error` compris |
-| 23 | Un `is` dont la forme lève dans un step laisse le run vert  | 5   | modéré    | TODO | trouvé en traitant 22 ; hors R10 tant que non décidé |
-| R10 | Release 0.1.12 (15 à 20, 22)                               | 5   | —         | TODO | |
+| 23 | Un `is` dont la forme lève dans un step laisse le run vert  | 5   | modéré    | FAIT | PR 7 ; trouvé en traitant 22 |
+| R10 | Release 0.1.12 (15 à 20, 22, 23)                           | 5   | —         | TODO | 23 ajouté : son correctif est dans `[Unreleased]` avec les autres |
 
 Ordre proposé : 12 (le seul critique), 13 (pour que R9 ne refasse pas l'erreur de
 0.1.10), 14, 21, R9 ; puis 15 à 20 et 22 dans l'ordre, R10. Les items 16 à 22 sont
@@ -69,6 +69,7 @@ PR du lot :
 | 4  | 15         | 0.1.12  | ordre d'affichage, relecture à part |
 | 5  | 16, 17     | 0.1.12  | changements de code modérés, indépendants |
 | 6  | 18, 19, 20, 22 | 0.1.12 | avertissement, ménage, doc ; 22 va avec 18, deux hooks qui se taisent |
+| 7  | 23         | 0.1.12  | trouvé en traitant 22, seul |
 
 Un item passe à `FAIT` dans le commit de sa PR ; une PR de plusieurs items porte un
 commit par item.
@@ -507,8 +508,25 @@ Où : `core/run-step` ne lit que `:fail` dans `*report-counters*`.
 Correctif : lire `:error` avec `:fail`, comme `call-hook` depuis l'item 22.
 Tests : `feature_test.clj`. CHANGELOG : `Fixed`.
 
+Fait. `run-step` et `call-hook` lisent le compteur par la même fonction,
+`assertion-failed?` : la règle est écrite une fois. Le step est `:fail` sans
+`:exception`, comme pour un `is` faux : il n'a rien levé.
+Vérifié sur le projet jetable, le `is` qui lève dans le dernier step du troisième
+scénario :
+
+| Run                 | Avant                                   | Après                                    |
+|---------------------|-----------------------------------------|------------------------------------------|
+| sans option         | `0 failures`, code 0, `failures="0"`    | `1 failures`, code 1, `failures="1"`     |
+| sous `--fail-fast`  | `1 failures`, code 1                    | inchangé                                 |
+
+Sous `--fail-fast` le cas était déjà juste : le marqueur de kaocha fait lever le step.
+
+Kaocha compte un échec, pas une erreur : le résumé dit `1 failures` et `junit.xml`
+porte `failures="1" errors="0"`, avec un élément `<error>` dans le cas de test. C'est
+le compte d'un step qui lève.
+
 ### R10. Release 0.1.12
-Après 15 à 20 et 22. Peut se scinder si un item traîne.
+Après 15 à 20, 22 et 23. Peut se scinder si un item traîne.
 
 ## Vérifié par l'audit, rien à faire
 
