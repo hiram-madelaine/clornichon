@@ -285,14 +285,23 @@
   sans argument, comme avant. L'arité 0 l'emporte : un hook existant en a
   forcément une, et son arité 1 attend autre chose que ctx - chez Electre,
   `add-perimetres-contractuels` a `[]` et `[perimetres]`. Un hook marqué
-  `:scenari/tags` ne tourne que si les tags de ctx satisfont l'expression."
+  `:scenari/tags` ne tourne que si les tags de ctx satisfont l'expression.
+
+  Un `is` qui échoue dans le hook ne lève rien : le reporter l'affiche et le
+  compte, et personne ne lit ce compteur. Il est lu ici, comme `run-step` le
+  fait pour un glue, et le hook lève ce qu'il n'a pas levé."
   [{f :ref :keys [arglists ^Expression tag-expr]} ctx]
   (when (or (nil? tag-expr)
             ;; les tags sont stockés sans le @, l'expression le veut
             (.evaluate tag-expr (mapv #(str "@" %) (:annotations ctx))))
-    (if (and (some #(= 1 (count %)) arglists) (not-any? empty? arglists))
-      (f ctx)
-      (f))))
+    (binding [t/*report-counters* (ref t/*initial-report-counters*)]
+      (if (and (some #(= 1 (count %)) arglists) (not-any? empty? arglists))
+        (f ctx)
+        (f))
+      ;; :error : un `is` dont la forme lève, clojure.test l'attrape
+      (let [{:keys [fail error]} @t/*report-counters*]
+        (when (pos? (+ fail error))
+          (throw (ex-info (str "hook " f " : an assertion failed") {:hook f})))))))
 
 (def hook-keys
   "Les valeurs de `:scenari/hook` : ce qu'un hook global encadre."

@@ -51,7 +51,8 @@ Règles :
 | 19 | Code mort, features d'exemple hors du jar                   | 5   | ménage    | TODO | |
 | 20 | `doc/development-workflow.md` à jour                        | 5   | mineur    | TODO | |
 | 21 | `--fail-fast` fait tomber le run au premier step en échec   | 5   | important | FAIT | PR 3 ; traité avant R9, part donc en 0.1.11 |
-| 22 | Un `is` qui échoue dans un hook laisse le run vert          | 5   | modéré    | TODO | trouvé en traitant 21 |
+| 22 | Un `is` qui échoue dans un hook laisse le run vert          | 5   | modéré    | FAIT | PR 6 ; trouvé en traitant 21 ; dans `call-hook`, `:error` compris |
+| 23 | Un `is` dont la forme lève dans un step laisse le run vert  | 5   | modéré    | TODO | trouvé en traitant 22 ; hors R10 tant que non décidé |
 | R10 | Release 0.1.12 (15 à 20, 22)                               | 5   | —         | TODO | |
 
 Ordre proposé : 12 (le seul critique), 13 (pour que R9 ne refasse pas l'erreur de
@@ -452,6 +453,34 @@ Correctif : dans `around`, lier `*report-counters*` autour de chaque hook, comme
 `ex-info` qui nomme le hook, notée comme ce qu'il aurait levé.
 Tests : `global_hooks_test.clj`, un hook qui échoue sur un `is` fait échouer son
 scénario dans les trois runners. CHANGELOG : `Fixed`.
+
+Fait, et ce qui diffère du correctif prévu : le compteur est lié dans `call-hook`, pas
+dans `around` — c'est là que passent tous les hooks, ceux de la suite compris, et un
+seul endroit au lieu des deux appels de `around`. Le compteur `:error` est lu avec
+`:fail` : un `is` dont la forme lève est attrapé par clojure.test, qui le compte en
+`:error`.
+Vérifié sur le projet jetable, avec un `(is (= 1 2))` sur le deuxième scénario de
+trois :
+
+| Hook                | Avant                       | Après                        |
+|---------------------|-----------------------------|------------------------------|
+| `:before-scenario`  | `0 failures`, code 0        | `1 failures`, code 1, `junit.xml` `failures="1"`, steps `:pending` |
+| `:after-scenario`   | `0 failures`, code 0        | `1 failures`, code 1         |
+| sous `--fail-fast`  | arrêt au scénario, code 1   | inchangé                     |
+
+Kaocha affiche deux `FAIL in` pour le scénario : l'assertion, puis `Hook threw`.
+
+### 23. Un `is` dont la forme lève dans un step laisse le run vert — modéré
+
+Constat, trouvé en traitant l'item 22, reproduit sur le projet jetable : un step qui
+fait `(is (= 1 (throw (ex-info "raised in is" {}))))`. clojure.test attrape
+l'exception et la rapporte en `:error`. Kaocha affiche `ERROR in ...`, mais le résumé
+dit `0 failures`, le code de sortie est 0 et `junit.xml` porte `errors="0"`.
+
+Où : `core/run-step` ne lit que `:fail` dans `*report-counters*`.
+
+Correctif : lire `:error` avec `:fail`, comme `call-hook` depuis l'item 22.
+Tests : `feature_test.clj`. CHANGELOG : `Fixed`.
 
 ### R10. Release 0.1.12
 Après 15 à 20 et 22. Peut se scinder si un item traîne.

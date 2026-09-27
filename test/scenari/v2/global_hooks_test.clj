@@ -1,5 +1,6 @@
 (ns scenari.v2.global-hooks-test
   (:require [clojure.test :as t :refer [deftest testing is]]
+            [kaocha.report]
             [kaocha.result]
             [kaocha.testable :as testable]
             [kaocha.type.scenari]
@@ -243,20 +244,29 @@ Feature: global hooks
          (is (= [:pending :success]
                 (map (comp :status :step) (filter (comp #{:begin-step} :type) @events))))))))
 
+(defn- quietly
+  "Calls f under a reporter that says nothing and counts as kaocha's does, away
+  from the counters of this test: [(f) events]."
+  [f]
+  (let [events (atom [])]
+    (binding [t/*report-counters* (ref t/*initial-report-counters*)
+              t/report            (fn [m]
+                                    (swap! events conj m)
+                                    (kaocha.report/report-counters m))]
+      [(f) @events])))
+
 (defn- run-kaocha
   "The scenari suite narrowed to these features, run by kaocha without a word:
   [result events]."
   [& feature-ids]
-  (let [suite  (-> (testable/load {:kaocha.testable/type           :kaocha.type/scenari
-                                   :kaocha.testable/id             :scenario
-                                   :kaocha/source-paths            ["src"]
-                                   :kaocha/test-paths              ["test/scenari/v2"]
-                                   :kaocha.type.scenari/glue-paths ["test/scenari/v2"]})
-                   (update :kaocha.test-plan/tests
-                           (partial filterv (comp (set feature-ids) :kaocha.testable/id))))
-        events (atom [])]
-    (binding [t/report (fn [m] (swap! events conj m))]
-      [(testable/-run suite {}) @events])))
+  (let [suite (-> (testable/load {:kaocha.testable/type           :kaocha.type/scenari
+                                  :kaocha.testable/id             :scenario
+                                  :kaocha/source-paths            ["src"]
+                                  :kaocha/test-paths              ["test/scenari/v2"]
+                                  :kaocha.type.scenari/glue-paths ["test/scenari/v2"]})
+                  (update :kaocha.test-plan/tests
+                          (partial filterv (comp (set feature-ids) :kaocha.testable/id))))]
+    (quietly #(testable/-run suite {}))))
 
 (defn- failures
   "What kaocha counts: the leaves of the result, each with its failures."
@@ -303,3 +313,58 @@ Feature: global hooks
     (with-global-hooks [(hook 'start :before-all {} (boom :before-all))]
       #(is (thrown-with-msg? clojure.lang.ExceptionInfo #"boom before-all"
                              (run-kaocha ::two-scenarios-feature))))))
+
+;; ------------------------
+;;  A HOOK WHOSE `is` FAILS
+;; ------------------------
+
+(defn- failing-is
+  "A hook whose assertion fails - or raises, with `form` - without the hook
+  throwing anything, where `fails?` holds for its context."
+  ([fails?] (failing-is fails? #(= 1 2)))
+  ([fails? form] (fn [ctx] (when (fails? ctx) (is (form))))))
+
+(defn- steps-status [scenarios]
+  (map (fn [s] (map :status (:steps s))) scenarios))
+
+(deftest hook-that-fails-an-assertion-test
+  (testing "a before-scenario whose `is` fails, without throwing, fails its
+  scenario like one that throws: the failure was printed and the run stayed
+  green"
+    (with-global-hooks [(hook 'check :before-scenario {} (failing-is first?))]
+      #(let [[[{:keys [scenarios]}]] (quietly (fn [] (v2/run-features #'two-scenarios-feature)))]
+         (is (= [:fail :success] (map :status scenarios)))
+         (is (= [[:pending] [:success]] (steps-status scenarios)))
+         (is (re-find #"check : an assertion failed" (str (ex-message (:exception (first scenarios)))))
+             "the exception names the hook"))))
+
+  (testing "an after-scenario too, on a scenario whose steps passed"
+    (with-global-hooks [(hook 'check :after-scenario {} (failing-is first?))]
+      #(let [[[{:keys [scenarios]}]] (quietly (fn [] (v2/run-features #'two-scenarios-feature)))]
+         (is (= [:fail :success] (map :status scenarios)))
+         (is (= [[:success] [:success]] (steps-status scenarios))))))
+
+  (testing "an `is` whose form raises is an :error for clojure.test, and fails
+  the scenario as well"
+    (with-global-hooks [(hook 'check :before-scenario {}
+                              (failing-is first? #(throw (ex-info "raised" {}))))]
+      #(let [[[{:keys [scenarios]}]] (quietly (fn [] (v2/run-features #'two-scenarios-feature)))]
+         (is (= [:fail :success] (map :status scenarios))))))
+
+  (testing "a hook whose assertions pass fails nothing"
+    (with-global-hooks [(hook 'check :before-scenario {} (fn [_] (is (= 1 1))))]
+      #(let [[[{:keys [status]}]] (quietly (fn [] (v2/run-features #'two-scenarios-feature)))]
+         (is (= :success status)))))
+
+  (testing "the clojure.test runner fails the scenario"
+    (with-global-hooks [(hook 'check :before-scenario {} (failing-is first?))]
+      #(let [[_ events] (quietly (fn [] (sc-test/run-features #'two-scenarios-feature)))]
+         (is (= [:hook-failed :scenario-failed :scenario-succeed]
+                (filter #{:hook-failed :scenario-failed :scenario-succeed} (map :type events)))))))
+
+  (testing "and so does kaocha, which counts it"
+    (with-global-hooks [(hook 'check :before-scenario {} (failing-is first?))]
+      #(let [[result events] (run-kaocha ::two-scenarios-feature)]
+         (is (= [["first" 1] ["second" 0]] (failures result)))
+         (is (kaocha.result/failed? result))
+         (is (re-find #"check : an assertion failed" (str (first (hook-failures events)))))))))
