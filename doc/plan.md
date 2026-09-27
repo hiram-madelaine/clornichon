@@ -41,7 +41,7 @@ Règles :
 | 9  | Hooks globaux + before-all / after-all                      | 4   | —         | EN COURS | livré en 0.1.10 ; reste la mesure Electre (synthétique : coût nul) |
 | 11 | Niveau `Rule` dans le rapport et l'arbre kaocha             | 4   | —         | EN COURS | livré en 0.1.9 ; reste la mesure Electre (coût attendu nul) |
 | 12 | Un hook qui lève fait échouer son scénario, pas le run      | 5   | critique  | FAIT | PR 1 ; NDJSON : pas d'enveloppe `hook`, voir le détail |
-| 13 | `release.sh` prépare la doc avant de taguer                 | 5   | important | TODO | à faire avant R9 |
+| 13 | `release.sh` prépare la doc avant de taguer                 | 5   | important | FAIT | PR 2 ; garde-fou, le « Prepare » reste à la main |
 | 14 | `-load` charge aussi les `test-paths`                       | 5   | important | FAIT | PR 2 |
 | R9 | Release 0.1.11 (12, 13, 14)                                 | 5   | —         | TODO | |
 | 15 | Ordre du fichier dans la doc HTML, fin de `Rule` en console | 5   | important | TODO | |
@@ -205,6 +205,22 @@ Rien à rattraper pour 0.1.10 : un tag publié ne se déplace pas. À vérifier 
 sur cljdoc, l'audit ne l'a pas fait.
 Tests : aucun test automatisé ; un essai à blanc du garde-fou sur une branche.
 
+Fait, par le garde-fou : `release.sh` calcule la version à venir depuis le tag le plus
+proche et refuse de taguer sans section datée au CHANGELOG, sans cette version dans
+`README.md` et `doc/getting-started.md`, ou avec des changements non commités. Il
+vérifie avant de demander les identifiants : le lancer sans eux fait l'essai à blanc.
+Après metav, il compare le tag à la version vérifiée et s'arrête avant de publier s'ils
+diffèrent. Pas d'entrée CHANGELOG : rien ne change pour qui utilise la lib.
+
+Essayé dans un clone jetable, dépôt distant factice, `build.sh` et `deploy.sh`
+remplacés : sans argument, rien de préparé, préparé sans commit, préparé sans
+identifiants, `minor` non préparé — code de sortie 1 et aucun tag à chaque fois ; puis
+de bout en bout, metav tague bien `v0.1.11`.
+
+cljdoc, vérifié le 2026-09-27 : seules 0.1.2 et 0.1.3 y sont construites, rien de 0.1.4
+à 0.1.10. Ne pas demander le build de 0.1.10, son tag porte le README de 0.1.9 ;
+demander celui de 0.1.11 après R9.
+
 ### 14. `-load` charge aussi les `test-paths` — important
 
 Constat : avec le `tests.edn` de `doc/running.md:51` (`test-paths ["test/scenario"]`,
@@ -229,6 +245,10 @@ jetable avec le `tests.edn` de la doc.
 ### R9. Release 0.1.11
 Après 12, 13 et 14. S'arrêter à la publication Clojars et à la mise à jour de ce plan :
 le bump côté Electre revient à l'agent dédié.
+
+Dans l'ordre : commit « Prepare 0.1.11 » sur `master`, `./release.sh patch` sans
+identifiants pour l'essai à blanc, puis avec. Ensuite demander le build cljdoc de 0.1.11
+et vérifier que son README installe 0.1.11.
 
 ### 15. Ordre du fichier dans la doc HTML, fin de `Rule` en console — important
 
@@ -329,7 +349,9 @@ et `META-INF/`. CHANGELOG : `Changed` pour le contenu du jar, rien pour le code 
 - « must return the (possibly modified) state » contredit la règle nil/booléen de 0.1.1 ;
   les exemples gardent un `state` final devenu inutile ;
 - `clojure -M:test` ne lance pas les tests ;
-- les hooks globaux n'y figurent pas : renvoyer à `doc/state-and-hooks.md#global-hooks`.
+- les hooks globaux n'y figurent pas : renvoyer à `doc/state-and-hooks.md#global-hooks` ;
+- la procédure de release n'est décrite nulle part ailleurs que dans l'en-tête de
+  `release.sh` : « Prepare », essai à blanc, release.
 
 ### 21. `--fail-fast` fait tomber le run au premier step en échec — important
 
