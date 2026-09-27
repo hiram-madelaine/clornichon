@@ -1,17 +1,21 @@
-# Clornichon — lot 4 : ce qu'un utilisateur de Cucumber cherche en premier
+# Clornichon — lot 5 : ce que l'audit a trouvé
 
 ## Contexte
-0.1.8 publié. Les lots 1 à 3 (message de step non résolu, CI, durées, hooks avec
-contexte, cucumber-messages, types de paramètres custom, releases 0.1.3 → 0.1.8) sont
-faits ; leur détail reste dans l'historique (`git show a702a50:doc/plan.md`).
+0.1.10 publié. Les lots 1 à 4 sont livrés ; leur détail reste dans l'historique
+(`git show a702a50:doc/plan.md` pour les lots 1 à 3, `git show 2564ae0:doc/plan.md` pour
+le lot 4). Quatre items des lots précédents restent ouverts : ils gardent leur ligne au
+tableau de bord.
 
-Ce lot reprend trois cases de `doc/roadmap.md`, celles qui manquent le plus à quelqu'un
-qui vient de Cucumber : des hooks qui ne se redéclarent pas dans chaque `deffeature`,
-une API de datatable, et le niveau `Rule` dans le rapport.
+Ce lot traite l'audit du 2026-09-27 sur les évolutions 0.1.1 → 0.1.10 : chaque constat a
+été reproduit par une exécution réelle (projet jetable sous Kaocha, scripts), pas
+seulement lu dans le code. Le cas nominal est sain — 80 tests, 268 assertions, CI verte,
+niveau `Rule`, cucumber-messages et `define-parameter-type!` vérifiés. Ce qui pèche, c'est
+ce qui se passe quand un hook lève, et quelques promesses de la doc que le code ne tient
+pas.
 
 Référence perf (Electre, `diffusion/backend`, suite `:scenario`, 392 tests) : ~91 s,
-bruit d'environnement ±6 %. Les items 9 et 11 touchent le chemin d'exécution : mesurer
-avant de passer à `FAIT`.
+bruit d'environnement ±6 %. Mesures synthétiques de l'audit : `run-hooks` coûte 0,27 µs
+par scénario sans hook déclaré, un balayage `global-hooks` 1 à 3 ms, une fois par run.
 
 ## Gestion d'état
 
@@ -24,136 +28,294 @@ Règles :
 - `BLOQUÉ` / `ABANDONNÉ` : une ligne de raison dans la colonne Notes.
 - Ce fichier est mis à jour à chaque changement d'état, dans le même commit que le
   travail concerné. Une PR par item, comme les lots précédents.
+- Les numéros de ligne cités datent de `2564ae0` : se fier au nom de la fonction s'ils
+  ont bougé.
 
 ## Tableau de bord
 
-| #  | Item                                              | Lot | Cible      | État | Notes |
-|----|---------------------------------------------------|-----|------------|------|-------|
-| E1 | Electre passe de scenari `2396ada` à clornichon | 2 | Electre  | EN COURS | suivi par un agent dédié au repo Electre (MR, CI, bumps) |
-| 8  | Namespace `clornichon.*` (alias)                  | 3   | communauté | TODO | décision à prendre ; reco : garder `scenari.*`, l'expliquer dans le README |
-| 9  | Hooks globaux + before-all / after-all            | 4   | les deux   | EN COURS | codé, 79 tests verts ; reste la mesure Electre |
-| 10 | API de datatable                                  | 4   | communauté | FAIT | `scenari.v2.table` ; `diff` reporté |
-| 11 | Niveau `Rule` dans le rapport et l'arbre kaocha   | 4   | communauté | EN COURS | codé, 66 tests verts ; reste la mesure Electre |
-| R7 | Release 0.1.9 (niveau `Rule`)                     | 4   | communauté | FAIT | publiée sur Clojars, tag `v0.1.9` |
-| R8 | Release 0.1.10 (datatables, hooks globaux)        | 4   | les deux   | FAIT | publiée sur Clojars, tag `v0.1.10` ; CHANGELOG daté et docs en 0.1.10 après le tag |
+| #  | Item                                                        | Lot | Gravité   | État | Notes |
+|----|-------------------------------------------------------------|-----|-----------|------|-------|
+| E1 | Electre passe de scenari `2396ada` à clornichon             | 2   | —         | EN COURS | suivi par un agent dédié au repo Electre (MR, CI, bumps) |
+| 8  | Namespace `clornichon.*` (alias)                            | 3   | —         | TODO | décision à prendre ; reco : garder `scenari.*`, l'expliquer dans le README |
+| 9  | Hooks globaux + before-all / after-all                      | 4   | —         | EN COURS | livré en 0.1.10 ; reste la mesure Electre (synthétique : coût nul) |
+| 11 | Niveau `Rule` dans le rapport et l'arbre kaocha             | 4   | —         | EN COURS | livré en 0.1.9 ; reste la mesure Electre (coût attendu nul) |
+| 12 | Un hook qui lève fait échouer son scénario, pas le run      | 5   | critique  | TODO | |
+| 13 | `release.sh` prépare la doc avant de taguer                 | 5   | important | TODO | à faire avant R9 |
+| 14 | `-load` charge aussi les `test-paths`                       | 5   | important | TODO | l'exemple `tests.edn` de la doc ne charge pas |
+| R9 | Release 0.1.11 (12, 13, 14)                                 | 5   | —         | TODO | |
+| 15 | Ordre du fichier dans la doc HTML, fin de `Rule` en console | 5   | important | TODO | |
+| 16 | Retirer `deffeature` sur un répertoire, et commons-io       | 5   | modéré    | TODO | |
+| 17 | Type hints sur le chemin de matching                        | 5   | modéré    | TODO | 765 ms → 105 ms au chargement, banc synthétique |
+| 18 | Hooks globaux ignorés sans rien dire                        | 5   | modéré    | TODO | |
+| 19 | Code mort, features d'exemple hors du jar                   | 5   | ménage    | TODO | |
+| 20 | `doc/development-workflow.md` à jour                        | 5   | mineur    | TODO | |
+| R10 | Release 0.1.12 (15 à 20)                                   | 5   | —         | TODO | |
 
-Ordre proposé : 11 (le plus petit, rien ne change dans l'API), 10, puis 9 (le seul qui
-touche Electre).
+Ordre proposé : 12 (le seul critique), 13 (pour que R9 ne refasse pas l'erreur de
+0.1.10), 14, R9 ; puis 15 à 20 dans l'ordre, R10. Les items 16 à 20 sont indépendants
+les uns des autres et peuvent se prendre dans n'importe quel ordre.
+
+À décider en ouvrant le lot : 9 et 11 sont livrés et n'attendent qu'une mesure faite
+ailleurs — les passer en `BLOQUÉ` (raison : mesure Electre, agent dédié) pour libérer
+le seul créneau `EN COURS`.
+
+## Reproduire
+
+Le projet jetable de l'audit n'est pas versionné. Pour le refaire, hors du repo :
+
+```clojure
+;; deps.edn
+{:paths ["src"]
+ :deps {io.github.hiram-madelaine/clornichon {:local/root "<chemin du repo>"}}
+ :aliases {:test {:extra-paths ["test"]
+                  :extra-deps {lambdaisland/kaocha-junit-xml {:mvn/version "1.17.101"}}}}}
+```
+
+- `tests.edn` : celui de `doc/running.md`, plus `:kaocha.plugin/profiling` et
+  `:kaocha.plugin/junit-xml` (`target-file "target/junit.xml"`).
+- `test/features/cart.feature` : deux scénarios libres, puis une `Rule` avec un
+  `Background`, un scénario tagué et un `Scenario Outline` de deux lignes.
+- `test/scenario/glue/cart.clj` : les trois glues du README.
+- `test/scenario/cart_test.clj` : le `deffeature`, avec un `:post-scenario-run` local.
+- `test/scenario/glue/hooks.clj` : un hook global par clé, qui lève selon une variable
+  d'environnement :
+
+```clojure
+(def mode (System/getenv "HOOK_MODE"))
+(defn- boom! [where ctx]
+  (when (and (= mode where)
+             (or (nil? (:scenario-name ctx)) (= "second one" (:scenario-name ctx))))
+    (throw (ex-info (str "boom in " where) {}))))
+(defn ^{:scenari/hook :before-scenario} g-before [ctx] (println "HOOK before" ctx) (boom! "before-scenario" ctx))
+```
+
+```bash
+HOOK_MODE=before-scenario clojure -M:test -m kaocha.runner \
+  --no-color --no-capture-output --no-randomize
+```
+
+`--no-capture-output` : sans lui Kaocha avale la sortie des hooks d'un run vert.
 
 ## Détail des items
 
-### E1. Migration d'Electre — EN COURS
-`diffusion/backend`, `diffusion/import`, `bo/backend`, `bo/account-domain` : la dep git
-`io.github.hiram-madelaine/scenari` (SHA `2396ada`) devient
-`io.github.hiram-madelaine/clornichon {:mvn/version ...}`. Suivi et bumps faits par
-l'agent dédié au repo Electre, pas ici.
+### 12. Un hook qui lève fait échouer son scénario, pas le run — critique
 
-### 8. Namespace `clornichon.*`
-Décision d'abord. Les API publiques sont surtout des macros (`defgiven`, `deffeature`...) :
-un alias demande de les redéclarer une à une. Reco : garder `scenari.*` (c'est ce qui
-rend la migration depuis scenari triviale), une section « Pourquoi `scenari.*` ? » dans
-le README, et passer l'item en `ABANDONNÉ` faute de demande réelle.
+Constat, sous Kaocha :
+- un `:before-scenario` (ou `:pre-scenario-run`) qui lève sur le scénario 2 sur 5 : les
+  3 suivants ne tournent pas, code de sortie 1, ni résumé, ni `junit.xml`, ni NDJSON ;
+- un `:after-all` qui lève : les 5 scénarios passent, leurs résultats sont perdus ;
+- un `:post-scenario-run` local qui lève : les `:after-scenario` globaux ne tournent
+  pas — le nettoyage est sauté ;
+- un pre-hook et un post-hook qui lèvent tous les deux : seule l'exception du post-hook
+  remonte, la cause est perdue.
 
-### 9. Hooks globaux + before-all / after-all — EN COURS
-Aujourd'hui chaque `deffeature` porte ses hooks dans son map d'options : 250 features =
-250 fois le même `{:pre-scenario-run [#'clean-db!]}`.
+Le comportement vient de scenari 2.0.2, mais les hooks globaux l'aggravent : un
+`clean-db!` qui échoue une fois emporte toute la suite, et la CI n'a rien à montrer.
 
-Proposition : un hook se déclare comme un glue, par une métadonnée sur la var, dans les
-namespaces de glue, et vaut pour toutes les features :
+Où :
+- `src/kaocha/type/scenari.clj:177`, `-run :kaocha.type/scenari-scenario` : appelle
+  `sc/run-scenario` sans rien attraper ; idem `:152` (feature) et `:144` (suite) ;
+- `src/scenari/v2/core.clj:341`, `around` : `(finally (run! ... post-run))` s'arrête au
+  premier post-hook qui lève, et son exception remplace celle du `try`.
 
-```clojure
-(defn ^{:scenari/hook :before-scenario :scenari/tags "@db"} clean-db! [] ...)
-(defn ^{:scenari/hook :before-all} start-system! [] ...)
+Comportement visé, celui de Cucumber :
+- hook de scénario qui lève : le scénario est `:fail`, ses steps restent `:pending`,
+  les after-hooks tournent, le scénario suivant est lancé ;
+- hook de feature qui lève : les scénarios de la feature sont en échec, la feature
+  suivante est lancée ;
+- `:before-all` qui lève : inchangé, le run s'arrête (c'est documenté, et c'est ce que
+  fait un `use-fixtures :once`) ;
+- `:after-all` qui lève : l'erreur est rapportée et le code de sortie non nul, mais les
+  résultats du run sont gardés — résumé, `junit.xml`, NDJSON écrits ;
+- tous les after-hooks tournent, quoi que fassent les autres ; la première exception
+  remonte, les suivantes en `addSuppressed`.
+
+Correctif :
+- `around` : un `try` par post-hook, les exceptions collectées, la première relancée
+  (celle du `try` principal d'abord, si elle existe) ;
+- `-run :kaocha.type/scenari-scenario` : `try` autour de `sc/run-scenario`, un
+  `t/do-report {:type :fail ...}` comme pour un step qui lève (`scenari.clj:190`), et le
+  testable rendu avec `:kaocha.result/fail 1` ;
+- même chose un cran au-dessus pour la feature ; pour la suite, n'attraper que ce qui
+  vient des `:after-all`.
+
+Tests (`test/scenari/v2/global_hooks_test.clj`) : un before-scenario qui lève laisse
+tourner le scénario suivant ; un after-hook qui lève n'empêche pas le suivant ; deux
+exceptions, la première remonte et porte la seconde ; un after-all qui lève garde les
+résultats. Vérifier à la main sur le projet jetable que `junit.xml` est écrit.
+Doc : `doc/state-and-hooks.md`, la phrase « The `:post-*` hooks run even when... » à
+compléter. CHANGELOG : `Fixed`.
+
+### 13. `release.sh` prépare la doc avant de taguer — important
+
+Constat : le tag `v0.1.10` pointe sur `114ca76`, où le README installe `0.1.9` et le
+CHANGELOG n'a pas de section `[0.1.10]` — le commit « Prepare 0.1.10 » est venu après.
+Le pom publié porte `<tag>v0.1.10</tag>`, et cljdoc construit sa doc depuis ce tag. De
+0.1.3 à 0.1.9 l'ordre était le bon (« Prepare » puis « Bump »).
+
+```bash
+git show v0.1.10:README.md | grep mvn/version      # 0.1.9
+git show v0.1.10:CHANGELOG.md | grep -m2 '^# \['   # [Unreleased], [0.1.9]
 ```
 
-- Clés : `:before-all` `:after-all` (suite), `:before-feature` `:after-feature`,
-  `:before-scenario` `:after-scenario`. `:scenari/tags` et la règle d'arité (0 prioritaire,
-  1 = contexte) déjà en place s'appliquent tels quels : `->hook` et `call-hook` servent.
-- Découverte : même balayage que les glues (`glue.clj`), mis en cache de la même façon.
-- Ordre en oignon : hooks globaux avant ceux du `deffeature` à l'entrée, après eux à la
-  sortie. Entre hooks globaux : ordre de chargement des ns, puis des vars (à documenter).
-- before-all / after-all : tournent dans `testable/-run :kaocha.type/scenari`, autour de
-  `run-testables` ; after-all dans un `finally`. Un before-all qui lève fait échouer la
-  suite sans lancer de scénario.
-- Runner `clojure.test` seul : pas de notion de suite, before-all / after-all n'y
-  tournent pas (le dire dans la doc, renvoyer à `use-fixtures :once`). Les hooks de
-  feature et de scénario, eux, y tournent.
-- Les hooks du map d'options de `deffeature` restent, rien ne casse pour Electre.
+Correctif, au choix — le premier est le plus court :
+- `release.sh` refuse de taguer si `CHANGELOG.md` n'a pas de section datée pour la
+  version à venir ou si le README ne la mentionne pas ;
+- ou `release.sh` fait lui-même le « Prepare » (dater `[Unreleased]`, remplacer la
+  version dans `README.md` et `doc/getting-started.md`) et le commite avant metav.
 
-Tests : ordre en oignon, tag, after-all malgré un échec, un before-all qui lève.
-Doc : `doc/state-and-hooks.md`. Mesure Electre : la découverte ne doit rien coûter par
-scénario (résolue une fois, comme les glues).
+Rien à rattraper pour 0.1.10 : un tag publié ne se déplace pas. À vérifier au passage
+sur cljdoc, l'audit ne l'a pas fait.
+Tests : aucun test automatisé ; un essai à blanc du garde-fou sur une branche.
 
-Fait : `scenari.v2.core/global-hooks` balaie les vars `:scenari/hook` ; une valeur
-inconnue lève en nommant le hook. Pas de cache (un cache sur le nombre de ns ratait
-un ns remplacé et un hook ajouté au REPL) : les hooks sont résolus une fois à l'entrée
-d'un run - `run-suite` sous Kaocha, `run-features` des deux runners - et liés dans
-`*global-hooks*` ; `run-hooks` s'en sert, ou les cherche lui-même hors run. Un balayage
-coûte ~3 ms pour 1 740 vars ici.
-Un before-all qui lève arrête le run comme un `use-fixtures :once` de Kaocha : message,
-code de sortie 1, after-all joué, mais pas de résumé ni de `junit.xml`.
-Limite connue : sous le runner `clojure.test` seul, chaque feature est un `deftest` et
-refait le balayage ; sur une grosse base, préférer Kaocha (c'est déjà le runner
-recommandé).
-Reste avant `FAIT` : mesurer Electre.
+### 14. `-load` charge aussi les `test-paths` — important
 
-### 10. API de datatable — FAIT
-Aujourd'hui une table arrive en vecteur de maps (clés = en-têtes en keyword, cellules en
-chaînes). Ça casse deux formes courantes : la table verticale `| nom | valeur |` et la
-liste à une colonne, dont la première ligne est prise pour un en-tête.
+Constat : avec le `tests.edn` de `doc/running.md:51` (`test-paths ["test/scenario"]`,
+`glue-paths ["test/scenario/glue"]`), Kaocha sort sur
+`No namespace: scenario.cart-test found`. C'est le premier fichier qu'un nouveau venu
+recopie ; l'exemple vient du README de scenari.
 
-Proposition, sans changer ce que reçoit un step existant :
-- les cellules brutes (en-tête compris) posées en métadonnée du vecteur par
-  `argument->params` ;
-- un ns `scenari.v2.table` : `cells` (vecteur de vecteurs), `as-list` (une colonne ou une
-  ligne → vecteur), `as-map` (table à deux colonnes → map, clés en keyword), `transpose`
-  (en-têtes en première colonne → même vecteur de maps qu'aujourd'hui) ;
-- `diff` en dernier, seulement si le reste est livré : compare une table attendue à une
-  collection de maps et échoue en montrant les lignes en trop ou manquantes.
+Où : `src/kaocha/type/scenari.clj:119`, `-load` ne requiert que les `glue-paths`, puis
+`find-features-meta-in-dir` (`:22`) appelle `ns-publics` sur les namespaces des
+`test-paths`, pas encore chargés. Le `tests.edn` du repo passe parce que ses
+`glue-paths` couvrent ses `test-paths`.
 
-Non fait (YAGNI) : conversion ligne → entité typée — c'est un `map` + `update` côté glue.
-Tests : chaque fonction, et le squelette généré d'un step manquant inchangé.
-Doc : section datatable de `doc/step-expressions.md`.
+Correctif : `(require-all-ns (concat (::glue-paths testable) (:kaocha/test-paths testable)))`,
+les glues d'abord — un glue doit être chargé avant le `deffeature` qui s'en sert.
+Tests : un `testable/load` dont les `glue-paths` ne couvrent pas les `test-paths`.
+CHANGELOG : `Fixed`.
 
-Fait : `argument->params` pose `:scenari/cells` (toutes les lignes, en-tête compris) en
-métadonnée du vecteur de maps ; ce que reçoit un step ne change pas (l'égalité ignore
-la métadonnée). `scenari.v2.table` : `cells` (relit un vecteur de maps fait à la main
-depuis ses clés), `as-list`, `as-map` (lève sur une forme autre ou une clé en double),
-`transpose`. Le rendu console et `--doc-html` partent des cellules : une table d'une
-ligne s'affiche enfin, et l'ordre des colonnes n'est plus tributaire des clés d'une map.
-`diff` reporté : case séparée dans `doc/roadmap.md`, à faire sur demande.
+### R9. Release 0.1.11
+Après 12, 13 et 14. S'arrêter à la publication Clojars et à la mise à jour de ce plan :
+le bump côté Electre revient à l'agent dédié.
 
-### 11. Niveau `Rule` — EN COURS
-Le parser garde les `Rule` dans le GherkinDocument, mais les pickles les aplatissent :
-seule la description de la règle remonte (`ast-nodes`, préfixée à celle du scénario).
+### 15. Ordre du fichier dans la doc HTML, fin de `Rule` en console — important
 
-Proposition :
-- `ast-nodes` pose aussi `:rule` (nom, tags, description) sur chaque scénario d'une règle ;
-- rapport console (`scenari.v2.test` et le reporter kaocha) : une ligne `Rule : <nom>`
-  quand la règle change, scénarios indentés dessous ; la description de la règle n'est
-  plus préfixée à chaque scénario mais imprimée une fois sous la règle ;
-- arbre kaocha : un groupe `:kaocha.type/scenari-rule` entre feature et scénario. Les ids
-  des scénarios ne changent pas, pour que les `--focus` existants marchent encore ; la
-  règle gagne un id et un alias (`--focus <nom-de-règle>`).
-- cucumber-messages : rien à faire, le flux porte déjà les règles.
+Constat : le plugin `randomize` de Kaocha, actif par défaut, mélange le test-plan avant
+que les plugins scenari le lisent.
+- `--doc-html` et `--doc-report` : features et scénarios sortent dans l'ordre de la
+  graine. La documentation statique change à chaque run.
+- Console : rien ne marque la fin d'une `Rule`. Un scénario libre tiré après elle
+  s'imprime sous son titre et se lit comme en faisant partie — 4 graines sur 6 essayées.
 
-Tests : feature avec et sans règle, deux règles, outline dans une règle, `--focus` sur
-une règle. Doc : `doc/feature-structure.md` (la section qui dit que Rule est aplatie).
+Où : `src/kaocha/plugin/scenari_doc.clj:44`, `selected-features` ;
+`src/kaocha/type/scenari.clj:170`, `-run :kaocha.type/scenari-rule`.
 
-Fait : chaque scénario porte `:rule` (`:id`, `:name`, `:annotations`, `:description`) ;
-son `:description` n'est plus que la sienne (changement noté au CHANGELOG). Kaocha :
-groupe `:kaocha.type/scenari-rule`, id `:ns.feature.rule/nom`, alias `:nom` ; les ids
-des scénarios sont calculés avant le regroupement, donc inchangés. `selected-features`
-(scenari-doc) aplatit les règles : dry-run, slowest-steps, messages et doc HTML lisent
-tous par là. `--tags` saute une règle vide. Console et `--doc-html` : `Rule : <nom>`,
-tags et description une fois au-dessus des scénarios.
-Non fait : indentation des scénarios sous la règle (le reporter n'a pas d'état de
-profondeur), `Rule` dans la table des matières HTML.
-Reste avant `FAIT` : mesurer Electre (le coût attendu est nul : un regroupement au
-chargement, un événement par règle).
+Correctif :
+- poser sur chaque scénario son rang dans la feature (`map-indexed` dans `-load`), et
+  trier dans le rendu HTML : features par id, scénarios par rang. `selected-features`
+  sert aussi à dry-run, slowest-steps et messages, qui se moquent de l'ordre : trier là
+  ne casse rien ;
+- émettre `{:type :end-rule}` à la fin de `-run :kaocha.type/scenari-rule`, et un
+  `defmethod t/report :end-rule` dans `scenari.v2.test` qui ferme la règle d'une ligne.
+
+Tests : le document est le même pour deux graines ; le rapport d'une règle suivie d'un
+scénario libre. CHANGELOG : `Fixed`.
+
+### 16. Retirer `deffeature` sur un répertoire, et commons-io — modéré
+
+Constat : `doc/getting-started.md:61` annonce qu'un `deffeature` accepte « a directory
+of features ». L'appel lève une `ClassCastException` (`File` passé à `io/resource`), et
+n'a jamais marché : dans scenari 2.0.2 le `doseq` rendait `nil`.
+
+Où : `src/scenari/v2/core.clj:76`, `read-source :dir` ; `:49`, `get-feature-files`.
+
+Correctif, par suppression :
+- supprimer `read-source :dir` et la mention dans la doc ;
+- `get-feature-files` ne sert plus qu'à `test/scenari/v2/corpus_test.clj` : l'y
+  déplacer, réécrit avec `file-seq` ;
+- retirer `commons-io` de `deps.edn`. La 2.6 est visée, de mémoire, par
+  CVE-2021-29425 et CVE-2024-47554 — à confirmer avec un scanner, mais la retirer règle
+  la question sans avoir à la trancher.
+
+CHANGELOG : `Changed`, avec la même note que pour `tools.logging` en 0.1.3 — un projet
+qui utilisait commons-io à travers Clornichon doit le déclarer.
+
+### 17. Type hints sur le chemin de matching — modéré
+
+Constat : `*warn-on-reflection*` sort 92 avertissements dans `core.clj` et 15 dans
+`glue.clj`. Un seul est sur un chemin chaud : `src/scenari/v2/glue.clj:136`, `match`,
+appelé pour chaque couple (step, glue) au chargement. Banc synthétique, 3 400 steps
+contre 440 glues : 765 ms tel que livré, 105 ms avec un hint.
+
+Correctif : `^Expression` sur l'expression dans `match` (et l'import). Les autres
+avertissements sont payés une fois par step ou par feature : ne les traiter que si une
+mesure le justifie.
+Tests : ceux de `glue_test.clj` suffisent. Mesurer avant et après, sur le banc et sur
+Electre si l'agent dédié peut. CHANGELOG : `Changed`.
+
+### 18. Hooks globaux ignorés sans rien dire — modéré
+
+Constat : deux hooks qui ne tournent jamais, sans message — ce que `global-hooks` évite
+déjà pour une clé mal orthographiée.
+- `^{:scenari/hook :before-all :scenari/tags "@db"}` : le contexte de suite n'a pas de
+  tags, l'expression est toujours fausse (`core.clj:373`, `run-suite`).
+- un hook `defn-` : le balayage passe par `ns-publics` (`core.clj:316`).
+
+Correctif :
+- `global-hooks` lève, en nommant le hook, si `:scenari/tags` est posé sur un
+  `:before-all` ou un `:after-all` ;
+- `ns-interns` à la place de `ns-publics`. À décider : faire tourner un hook privé, ou
+  lever. Reco : le faire tourner — un hook n'a pas à être public.
+
+Tests : les deux cas, dans `global_hooks_test.clj`. Doc : `doc/state-and-hooks.md`.
+CHANGELOG : `Fixed`.
+
+### 19. Code mort, features d'exemple hors du jar — ménage
+
+À supprimer :
+- `src/scenari/utils.clj:5-74` et `:94-110` : `contextual-eval`, `local-context`,
+  `readr`, `break-with-repl`, `get-whole-in`, `get-in-tree`, `digits-only?`,
+  `number-value-of` — aucun appelant, environ 85 lignes de l'époque instaparse ;
+- `src/kaocha/type/scenari.clj` : `-run :kaocha.type/scenari-step` (`:200`, jamais
+  atteint, arguments inversés) et son `s/def` ; le premier `s/def :kaocha.type/scenari`
+  (`:15`, redéfini en `:209`) ; les quatre `derive!` (`:218-222`) sur des clés jamais
+  émises ; les `require` en double (`v2`/`sc`, `string`/`str`) ;
+- `test.sh` : `-A:test -m` émet un avertissement de dépréciation, `-M:test` le règle.
+
+À déplacer : le jar embarque six features d'exemple à la racine du classpath
+(`atm.feature`, `calculator.feature`, `product-catalog.feature`, `remember-me.feature`,
+`scenari.feature`, `utilisateurs.story`), parce que `resources/` est dans `:paths` et
+copié par `script/build.clj`. Un `(deffeature x "calculator.feature")` côté utilisateur
+peut résoudre celle de la bibliothèque. Les passer sous `test/`, et `grep` leurs usages
+dans `test/` et `doc/` avant de les bouger.
+
+Vérifier : `unzip -l target/clornichon-*.jar` ne liste plus que `scenari/`, `kaocha/`
+et `META-INF/`. CHANGELOG : `Changed` pour le contenu du jar, rien pour le code mort.
+
+### 20. `doc/development-workflow.md` à jour — mineur
+
+- « must return the (possibly modified) state » contredit la règle nil/booléen de 0.1.1 ;
+  les exemples gardent un `state` final devenu inutile ;
+- `clojure -M:test` ne lance pas les tests ;
+- les hooks globaux n'y figurent pas : renvoyer à `doc/state-and-hooks.md#global-hooks`.
+
+### R10. Release 0.1.12
+Après 15 à 20. Peut se scinder si un item traîne.
+
+## Vérifié par l'audit, rien à faire
+
+- Niveau `Rule` : `--focus` par alias et par id complet, ids de scénarios inchangés,
+  `--tags`, règle sans nom, deux règles du même nom, `classname` junit stables.
+- cucumber-messages : 52 enveloppes JSON valides, `pickleId` et `stepDefinitionIds`
+  cohérents, protocole 27.2.0.
+- Hooks : ordre en oignon entre globaux et locaux, contexte et `:status` conformes à
+  la doc.
+- `define-parameter-type!` : redéfinition, conflit avec un type natif, registre intact
+  après une définition refusée.
 
 ## Hors périmètre (YAGNI)
-Retry/rerun, stop-on-failure (voir d'abord si le `--fail-fast` de kaocha suffit),
-attachments, hooks par step, déclaration de glue sans macro, statut `:undefined`
-distinct : attendre une demande réelle. Exécution parallèle : branche
-`feat/parallel-feature-execution` en attente de décision, hors de ce lot.
+
+Relevé par l'audit, laissé tel quel :
+- entre hooks globaux, les `after` tournent dans l'ordre des `before`, pas en ordre
+  inverse comme Cucumber : c'est documenté, c'est un choix ;
+- `run-scenarios` et `run-steps` empilent des `map` paresseux : `StackOverflowError` à
+  20 000 scénarios dans une feature, 890 ms pour 5 000 steps. Tailles irréalistes ;
+  passer à `mapv` le jour où on y touche ;
+- `table/cells` rend `nil` sur un vecteur vide fait à la main, et le rapport plante
+  (`scenari/v2/test.clj:57`) : le parser ne produit jamais ce cas.
+
+Des lots précédents : retry/rerun, stop-on-failure (voir d'abord si le `--fail-fast` de
+kaocha suffit), attachments, hooks par step, déclaration de glue sans macro, statut
+`:undefined` distinct, `diff` de datatable : attendre une demande réelle. Exécution
+parallèle : branche `feat/parallel-feature-execution` en attente de décision.
