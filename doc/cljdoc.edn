@@ -1,0 +1,18 @@
+{:cljdoc.doc/tree
+ [["Readme" {:file "README.md"}]
+  ["Getting Started" {:file "doc/getting-started.md"}]
+  ["Step Expressions" {:file "doc/step-expressions.md"}]
+  ["State and Hooks" {:file "doc/state-and-hooks.md"}]
+  ["Running Features" {:file "doc/running.md"}]
+  ["Migrating from scenari" {:file "doc/migrating-from-scenari.md"}]
+  ["Development Workflow" {:file "doc/development-workflow.md"}]
+  ["Glossary" {:file "doc/glossary.md"}]
+  ["Architecture Decisions" {}
+   ["1. Record architecture decisions" {:file "doc/adr/0001-record-architecture-decisions.md"}]
+   ["2. Fork scenari" {:file "doc/adr/0002-fork-scenari.md"}]
+   ["3. Parse with Cucumber's Gherkin parser" {:file "doc/adr/0003-parse-with-cucumber-gherkin.md"}]
+   ["4. Match steps with cucumber expressions" {:file "doc/adr/0004-cucumber-expressions.md"}]
+   ["5. Resolve the glue at parse time" {:file "doc/adr/0005-resolve-glue-at-parse-time.md"}]
+   ["6. Thread the state through the steps" {:file "doc/adr/0006-thread-state-through-steps.md"}]]
+  ["Feature Data Structure" {:file "doc/feature-structure.md"}]
+  ["Changelog" {:file "CHANGELOG.md"}]]}
