@@ -3,6 +3,8 @@ All notable changes to this project will be documented in this file. This change
 
 # [Unreleased] #
 
+# [0.1.3] - 2026-09-27 #
+
 ## Changed ##
 
 A step whose sentence matches no glue fails with `Undefined step: <sentence>`
