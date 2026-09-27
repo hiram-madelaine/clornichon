@@ -3,6 +3,13 @@ All notable changes to this project will be documented in this file. This change
 
 # [Unreleased] #
 
+# [0.1.8] - 2026-09-27 #
+
+## Changed ##
+
+The pom carries a description and the project URL, so Clojars and cljdoc
+present Clornichon as a BDD library for Clojure.
+
 # [0.1.7] - 2026-09-27 #
 
 ## Added ##

@@ -35,6 +35,7 @@ Règles :
 | 7  | Types de paramètres custom publics                | 3   | communauté | FAIT | `define-parameter-type!` |
 | R4 | Release 0.1.6 (types de paramètres custom)        | 3   | communauté | FAIT | publiée sur Clojars, tag `v0.1.6` |
 | R5 | Release 0.1.7 (cucumber-messages)                 | 3   | communauté | FAIT | publiée sur Clojars, tag `v0.1.7` |
+| R6 | Release 0.1.8 (description BDD du pom)            | 3   | communauté | EN COURS | préparée, reste `./release.sh patch` |
 | 8  | Namespace `clornichon.*` (alias)                  | 3   | communauté | TODO | décision à prendre |
 
 ## Détail des items
