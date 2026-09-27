@@ -27,7 +27,8 @@ Règles :
   case cochée dans `doc/roadmap.md` si l'item y figure, commit fait.
 - `BLOQUÉ` / `ABANDONNÉ` : une ligne de raison dans la colonne Notes.
 - Ce fichier est mis à jour à chaque changement d'état, dans le même commit que le
-  travail concerné. Une PR par item, comme les lots précédents.
+  travail concerné. Six PR pour le lot, regroupées comme ci-dessous : une par item
+  aurait fait dix PR, dont plusieurs de quelques lignes.
 - Les numéros de ligne cités datent de `2564ae0` : se fier au nom de la fonction s'ils
   ont bougé.
 
@@ -39,7 +40,7 @@ Règles :
 | 8  | Namespace `clornichon.*` (alias)                            | 3   | —         | TODO | décision à prendre ; reco : garder `scenari.*`, l'expliquer dans le README |
 | 9  | Hooks globaux + before-all / after-all                      | 4   | —         | EN COURS | livré en 0.1.10 ; reste la mesure Electre (synthétique : coût nul) |
 | 11 | Niveau `Rule` dans le rapport et l'arbre kaocha             | 4   | —         | EN COURS | livré en 0.1.9 ; reste la mesure Electre (coût attendu nul) |
-| 12 | Un hook qui lève fait échouer son scénario, pas le run      | 5   | critique  | FAIT | branche `hook-failures` ; NDJSON : pas d'enveloppe `hook`, voir le détail |
+| 12 | Un hook qui lève fait échouer son scénario, pas le run      | 5   | critique  | FAIT | PR 1 ; NDJSON : pas d'enveloppe `hook`, voir le détail |
 | 13 | `release.sh` prépare la doc avant de taguer                 | 5   | important | TODO | à faire avant R9 |
 | 14 | `-load` charge aussi les `test-paths`                       | 5   | important | TODO | l'exemple `tests.edn` de la doc ne charge pas |
 | R9 | Release 0.1.11 (12, 13, 14)                                 | 5   | —         | TODO | |
@@ -55,6 +56,20 @@ Règles :
 Ordre proposé : 12 (le seul critique), 13 (pour que R9 ne refasse pas l'erreur de
 0.1.10), 14, R9 ; puis 15 à 21 dans l'ordre, R10. Les items 16 à 21 sont indépendants
 les uns des autres et peuvent se prendre dans n'importe quel ordre.
+
+PR du lot :
+
+| PR | Items      | Release | Pourquoi ensemble |
+|----|------------|---------|-------------------|
+| 1  | 12         | 0.1.11  | critique, seul |
+| 2  | 13, 14     | 0.1.11  | petits, même release |
+| 3  | 21         | 0.1.12  | à avancer en 0.1.11 si `--fail-fast` sert en CI — à décider |
+| 4  | 15         | 0.1.12  | ordre d'affichage, relecture à part |
+| 5  | 16, 17     | 0.1.12  | changements de code modérés, indépendants |
+| 6  | 18, 19, 20 | 0.1.12  | avertissement, ménage, doc |
+
+Un item passe à `FAIT` dans le commit de sa PR ; une PR de plusieurs items porte un
+commit par item.
 
 À décider en ouvrant le lot : 9 et 11 sont livrés et n'attendent qu'une mesure faite
 ailleurs — les passer en `BLOQUÉ` (raison : mesure Electre, agent dédié) pour libérer
