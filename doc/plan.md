@@ -24,7 +24,7 @@ Règles :
 |----|---------------------------------------------------|-----|------------|------|-------|
 | 1  | Step non résolu → message clair, pas NPE          | 1   | les deux   | FAIT | statut `:fail` gardé ; `:undefined` distinct avec #6 |
 | 2  | Retirer les dépendances inutilisées               | 1   | communauté | FAIT | `tools.namespace` gardé : utilisé |
-| 3  | CI GitHub Actions                                 | 1   | communauté | EN COURS | workflow commité, à valider au 1er push |
+| 3  | CI GitHub Actions                                 | 1   | communauté | FAIT | 1er run vert sur la PR #1 |
 | R1 | Release 0.1.3                                     | 1   | les deux   | TODO | après 1–3 |
 | 4  | Durées step/scénario + rapport « slowest steps »  | 2   | Electre    | TODO |       |
 | 5  | Hooks reçoivent le scénario + hooks par tag       | 2   | Electre    | TODO |       |
@@ -45,12 +45,12 @@ Test : `undefined-step-names-the-step-test` dans `test/scenari/v2/feature_test.c
 basis par `script/build.clj`). `org.clojure/tools.namespace` reste : `kaocha/type/scenari.clj`
 le requiert, et kaocha tire un fork (`lambdaisland/tools.namespace`), pas celui-ci.
 
-### 3. CI — EN COURS
+### 3. CI — FAIT
 `.github/workflows/test.yml` : Java 17 (temurin), Clojure CLI, cache `~/.m2` + `~/.gitlibs`,
 `./test.sh` sur push `master` et PR. `CI=true` active le profil `:ci` (vérifié en local :
 exit 0, `target/junit.xml` à 0 échec). `.gitignore` ignorait `.*` : exception `!/.github/`.
 Pas d'entrée CHANGELOG (rien ne change pour les utilisateurs de la lib).
-Reste : run vert sur GitHub → `FAIT`.
+Premier run vert sur la PR #1 (21 s).
 
 ### 4. Durées + slowest steps
 `System/nanoTime` autour de `apply f` dans `run-step`, stocké en `:duration-ns` sur le
