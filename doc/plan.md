@@ -58,7 +58,9 @@ Règles :
 | 25 | Kaocha n'est plus une dépendance                            | 6   | important | FAIT | branche `feat/kaocha-optional`, partie de celle de 24 ; rupture notée au CHANGELOG |
 | 26 | Une seule boucle d'exécution                                | 6   | modéré    | FAIT | branche `refactor/single-execution-loop`, partie de celle de 25 ; scénarios d'Electre non joués |
 | 27 | Page « Known limits »                                       | 6   | mineur    | FAIT | branche `docs/known-limits`, partie de celle de 26 ; doc seule |
-| R11 | Release 0.2.0 (24 à 27, tout le lot 6)                     | 6   | —         | EN COURS | préparée sur la branche locale `release/0.2.0` ; restent les scénarios d'Electre, la fusion de la PR 17, `./release.sh minor` avec les identifiants Clojars |
+| R11 | Release 0.2.0 (24 à 27, tout le lot 6)                     | 6   | —         | FAIT | publiée sur Clojars, tag `v0.2.0` ; build cljdoc en échec, voir 28 |
+| 28 | cljdoc ne charge pas les `kaocha.*` sans Kaocha au pom       | 6   | important | FAIT | branche `fix/cljdoc-kaocha-optional` ; Kaocha optionnel au pom |
+| R12 | Release 0.2.1 (28)                                          | 6   | —         | À FAIRE | cljdoc de 0.2.0 ne se rattrape pas, sauf exception dans `cljdoc-analyzer` |
 
 Ordre proposé : 12 (le seul critique), 13 (pour que R9 ne refasse pas l'erreur de
 0.1.10), 14, 21, R9 ; puis 15 à 20 et 22 dans l'ordre, R10. Les items 16 à 22 sont
@@ -802,6 +804,31 @@ Reste, dans l'ordre :
    identifiants Clojars ;
 4. demander le build cljdoc de 0.2.0, vérifier que son README installe 0.2.0, passer
    R11 à `FAIT`.
+
+Publiée le 2026-09-28. Vérifié après coup :
+- le tag `v0.2.0` est sur GitHub, sur le commit qui suit le « Prepare » ;
+- le jar de Clojars ne contient que `scenari/`, `kaocha/` et `META-INF/`, et son pom
+  pointe sur `v0.2.0`, avec 5 dépendances, sans Kaocha ;
+- cljdoc, build 115238 : échec, `Could not locate kaocha/output` en chargeant
+  `kaocha.plugin.scenari-doc`. Voir 28.
+
+### 28. cljdoc ne charge pas les `kaocha.*` sans Kaocha au pom — important
+Constat : cljdoc charge chaque namespace du jar avec les dépendances du pom. Depuis 25,
+Kaocha n'y est plus, et les namespaces `kaocha.*` du jar ne se chargent pas : pas de doc
+d'API pour 0.2.0.
+
+Fait : `script/build.clj` ajoute Kaocha au pom avec `:optional true`. cljdoc met les
+dépendances optionnelles et `provided` au classpath de son analyse
+(`cljdoc-analyzer`, `deps.clj`, `provided-deps`) ; tools.deps les écarte des dépendances
+transitives (`extensions/maven.clj`), Maven aussi. tools.build sait écrire `optional`,
+pas `scope`.
+
+Vérifié : le pom porte `<optional>true</optional>` sur Kaocha ; un projet jetable qui
+dépend de ce pom, servi par un dépôt local, a le même classpath qu'avec 0.2.0 publiée,
+sans Kaocha. Le build cljdoc ne se vérifie qu'une fois la version publiée.
+
+Pour 0.2.0 déjà publiée : seule une exception dans `cljdoc-analyzer` rattraperait le
+build. Pas demandée, 0.2.1 la remplace.
 
 ## Vérifié par l'audit, rien à faire
 

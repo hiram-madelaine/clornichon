@@ -6,7 +6,11 @@
 
 (def lib-name 'io.github.hiram-madelaine/clornichon)
 (def jar-content "target/classes")
-(def basis (b/create-basis {:project "deps.edn"}))
+(def basis
+  ;; Kaocha optional in the pom: cljdoc loads the kaocha.* namespaces with it,
+  ;; tools.deps and Maven do not pass it on to who depends on Clornichon
+  (b/create-basis {:project "deps.edn"
+                   :extra   {:deps {'lambdaisland/kaocha {:mvn/version "1.87.1366" :optional true}}}}))
 (def jar-file (format "target/%s-%s.jar" (name lib-name) version))
 
 (defn clean "Clean target dir" [_]
