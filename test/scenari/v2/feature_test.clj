@@ -521,3 +521,41 @@ Feature: mixed tags
           out (string/replace out #"\u001b\[[0-9;]*m" "")]
       (is (= 1 (count (re-seq #"Rule : first rule" out))))
       (is (string/includes? out "@ruled\nRule : second rule\n  what the second rule checks")))))
+
+(deftest one-loop-for-every-runner-test
+  (let [ast      (v2/->feature-ast (str "Feature: f\n  Scenario: red\n"
+                                        "    Then My initial state contains foo\n"
+                                        "    When the step blows up\n"
+                                        "    Then My initial state contains foo")
+                                   {:default-scenario-state {:foo 1}} *ns*)
+        events   (atom [])
+        ;; the reporter is ours while the feature runs: what the steps assert
+        ;; is not what this test asserts
+        as-data  (binding [v2/*global-hooks*   {}
+                           t/*report-counters* (ref t/*initial-report-counters*)
+                           t/report            #(swap! events conj %)]
+                   (sc-test/run-features (with-meta {} {:scenari/feature-ast ast}))
+                   (v2/run-scenario (first (:scenarios ast))))
+        reported (remove (comp #{:pass :fail :error} :type) @events)]
+    (testing "le runner clojure.test rapporte ce que `run-scenario` rend : il
+    n'a plus de boucle à lui"
+      (is (= [:success :fail :pending]
+             (map :status (:steps as-data))
+             (map (comp :status :step) (filter (comp #{:begin-step} :type) reported)))))
+    (testing "et dans l'ordre d'avant : chaque step, ceux qui n'ont pas tourné
+    compris, puis l'issue du scénario"
+      (is (= [:begin-feature :begin-scenario
+              :begin-step :step-succeed
+              :begin-step :step-failed
+              :begin-step
+              :scenario-failed :end-feature]
+             (map :type reported))))))
+
+(deftest many-scenarios-test
+  (testing "20 000 scénarios dans une feature : les `map` paresseux empilés à
+  chaque scénario levaient une StackOverflowError à la lecture du résultat"
+    (let [scenarios (mapv #(hash-map :id % :scenario-name (str "s" %) :steps []) (range 20000))
+          ran       (binding [v2/*global-hooks* {}]
+                      (v2/run-scenarios scenarios scenarios))]
+      (is (= 20000 (count ran)))
+      (is (every? #(= :success (:status %)) ran)))))

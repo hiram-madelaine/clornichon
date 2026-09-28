@@ -56,6 +56,7 @@ Règles :
 | R10 | Release 0.1.12 (15 à 20, 22, 23)                           | 5   | —         | ABANDONNÉ | tout était fusionné avant R9 : parti en 0.1.11 |
 | 24 | Deux phrases pour un même nom de var : `defglue` lève       | 6   | important | FAIT | branche `fix/glue-name-collision` ; Electre : aucune collision, chargement identique |
 | 25 | Kaocha n'est plus une dépendance                            | 6   | important | FAIT | branche `feat/kaocha-optional`, partie de celle de 24 ; rupture notée au CHANGELOG |
+| 26 | Une seule boucle d'exécution                                | 6   | modéré    | FAIT | branche `refactor/single-execution-loop`, partie de celle de 25 ; scénarios d'Electre non joués |
 
 Ordre proposé : 12 (le seul critique), 13 (pour que R9 ne refasse pas l'erreur de
 0.1.10), 14, 21, R9 ; puis 15 à 20 et 22 dans l'ordre, R10. Les items 16 à 22 sont
@@ -661,6 +662,75 @@ Laissé de côté : sans Kaocha, rien n'éteint les couleurs du lanceur `clojure
 `NO_COLOR` dans `scenari.utils` le jour où quelqu'un redirige un tel run vers un
 fichier.
 
+### 26. Une seule boucle d'exécution — modéré
+
+Constat, lu dans le code : deux boucles jouent les steps d'un scénario.
+`core/run-steps` sert le type Kaocha et le runner de données ;
+`scenari.v2.test/run-feature` a la sienne, avec son propre `try-hooks`. Les items 12, 21
+et 23 ont tenu parce que leur correctif a été placé plus bas, dans `run-step` et
+`run-scenario` : rien ne l'imposait. Aucun écart de comportement trouvé entre les deux.
+
+Où : `src/scenari/v2/test.clj`, `run-feature` ; `src/scenari/v2/core.clj`, `run-steps`
+et `run-scenarios`.
+
+Correctif :
+- le runner `clojure.test` appelle `core/run-scenario` et rapporte depuis le résultat,
+  comme le `-run` du type Kaocha. `run-step` et `try-hooks` ne sont plus appelés que
+  par le cœur ;
+- `run-steps` et `run-scenarios` jouent puis remplacent en un passage, signatures
+  inchangées. Le point était au YAGNI du lot 5 ; il devient nécessaire, le runner
+  `clojure.test` héritant sinon des 870 ms pour 5 000 steps.
+
+Ce qui change pour qui lit la console du runner `clojure.test` : le scénario est
+rapporté une fois joué. Ce que les steps impriment en tournant, le `FAIL in` d'un `is`
+compris, passe au-dessus des steps du scénario au lieu de s'intercaler. Un scénario
+s'arrêtant à son premier step en échec, ce rapport est celui du step marqué
+`Step failed`. La suite des événements émis, elle, est la même : le test
+`one-loop-for-every-runner-test` passe aussi sur le code d'avant.
+
+```
+Testing scenario : adding items             Testing scenario : adding items
+  Given a cart with 2 items
+  When I add 3 items                        FAIL in (shopping-cart) (cart_test.clj:7)
+                                            expected: (= n (:cart state))
+FAIL in (shopping-cart) (cart_test.clj:7)     actual: (not (= 6 5))
+expected: (= n (:cart state))                 Given a cart with 2 items
+  actual: (not (= 6 5))                       When I add 3 items
+  Then the cart holds 6 items                 Then the cart holds 6 items
+  Step failed                                 Step failed
+  Then the cart is not empty                  Then the cart is not empty
+adding items FAILED                         adding items FAILED
+             avant                                       après
+```
+
+S'il faut retrouver l'ancien affichage : un rappel passé à `run-scenario`, appelé à
+chaque step joué. Pas fait, personne ne l'a demandé.
+
+Tests : `feature_test.clj`, `one-loop-for-every-runner-test` et `many-scenarios-test` ;
+le second lève une `StackOverflowError` sur le code d'avant. CHANGELOG : `Changed` et
+`Fixed`. Doc : `doc/development-workflow.md`, l'exemple d'un step en échec.
+
+Fait. `./test.sh` : 100 tests, 352 assertions. Banc dans la JVM, par les points d'entrée
+`run-features`, médiane de 7 passes après 3 de chauffe :
+
+| Mesure                                  | Runner        | Avant                | Après  |
+|-----------------------------------------|---------------|----------------------|--------|
+| 500 scénarios de 7 steps                | données       | 24,5 ms              | 16,2 ms |
+| 500 scénarios de 7 steps                | `clojure.test`| 38,5 ms              | 38,3 ms |
+| 1 scénario de 5 000 steps               | données       | 868,9 ms             | 9,9 ms |
+| 1 scénario de 5 000 steps               | `clojure.test`| 27,1 ms              | 31,4 ms |
+| 20 000 scénarios de 3 steps             | données       | `StackOverflowError` | 205 ms |
+| 20 000 scénarios de 3 steps             | `clojure.test`| 850,7 ms             | 792,9 ms |
+
+Banc Kaocha de la comparaison du 2026-09-28, 500 scénarios, JVM comprise, médiane de 5
+runs sur un instantané des sources de chaque commit : `master` 2,96 s, item 24 2,95 s,
+item 25 2,97 s, item 26 2,97 s. Pas d'écart mesurable.
+
+Electre : les namespaces de scénarios se chargent comme avant. Les scénarios n'ont pas
+été joués, et c'est leur exécution que cet item touche : `bo/backend` passe par le
+runner `clojure.test`, `diffusion/backend` par le type Kaocha. À lancer avant la
+release.
+
 ## Vérifié par l'audit, rien à faire
 
 - Niveau `Rule` : `--focus` par alias et par id complet, ids de scénarios inchangés,
@@ -677,9 +747,6 @@ fichier.
 Relevé par l'audit, laissé tel quel :
 - entre hooks globaux, les `after` tournent dans l'ordre des `before`, pas en ordre
   inverse comme Cucumber : c'est documenté, c'est un choix ;
-- `run-scenarios` et `run-steps` empilent des `map` paresseux : `StackOverflowError` à
-  20 000 scénarios dans une feature, 890 ms pour 5 000 steps. Tailles irréalistes ;
-  passer à `mapv` le jour où on y touche ;
 - `table/cells` rend `nil` sur un vecteur vide fait à la main, et le rapport plante
   (`scenari/v2/test.clj:57`) : le parser ne produit jamais ce cas.
 
