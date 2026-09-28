@@ -12,7 +12,22 @@ the steps of the first were reported missing. `defgiven` and its siblings now
 throw, naming both sentences. The same sentence defined again goes through, as
 a reload does. See `doc/step-expressions.md`.
 
+The data runner no longer fails on a large feature. `scenari.v2.core/run-feature`
+threw a `StackOverflowError` on a feature of 20,000 scenarios, and took 870 ms
+to run a scenario of 5,000 steps, 10 ms now: each step and each scenario run
+piled a lazy `map` on the result.
+
 ## Changed ##
+
+The `clojure.test` runner runs a scenario through `scenari.v2.core/run-scenario`,
+like the Kaocha type and the data runner: it had a loop of its own. It reports a
+scenario once it has run. What the steps print while they run -- a `println`,
+the `FAIL in ...` of an `is` -- now comes above the steps of the scenario, no
+longer between them. The failed step is still printed in red, followed by
+`Step failed`.
+
+The `:steps` of a scenario that ran and the `:scenarios` of a feature that ran
+are vectors, they were lazy sequences.
 
 Kaocha is no longer a dependency. A project that runs its features under Kaocha
 must declare `lambdaisland/kaocha` itself, as most already do to pick their

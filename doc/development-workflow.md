@@ -286,14 +286,22 @@ kaocha with colour disabled) for plain output.
 When a step fails, Clornichon provides information about the failure:
 
 ```
-  Then my cart should contain 1 item         (from my-project.glue/"my cart should contain {number} item")
-  Step failed
-FAIL in () (glue.clj:42)
+Testing scenario : Add item to empty cart
+
+FAIL in (shopping-cart) (glue.clj:42)
 expected: (= 1 (count (:items state)))
   actual: (not (= 1 0))
+  Given I have an empty shopping cart         (from my-project.glue/"I have an empty shopping cart")
+  When I add "Clojure Programming" book to the cart         (from my-project.glue/"I add {string} book to the cart")
+  Then my cart should contain 1 item         (from my-project.glue/"my cart should contain {number} item")
+  Step failed
   And the item should be "Clojure Programming" book         (from my-project.glue/"the item should be {string} book")
 Add item to empty cart FAILED
 ```
+
+A scenario is reported once it has run: what its steps print while they run, the
+report of a failed `is` included, comes above them. A scenario stops at its first
+failed step, so that report is the one of the step marked `Step failed`.
 
 The failing step is printed in red, and every step after it in grey - they are
 reported as pending rather than dropped, so the scenario stays readable end to end.

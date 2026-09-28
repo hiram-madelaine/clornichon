@@ -3,7 +3,7 @@
             [clojure.string :as string]
             [clojure.test :as t]
             [scenari.v2.step :refer [generate-step-fn]]
-            [scenari.v2.core :refer [run-step run-hooks try-hooks with-global-hooks]]
+            [scenari.v2.core :refer [run-scenario run-hooks with-global-hooks]]
             [scenari.v2.table :as table]
             [scenari.utils :as utils]))
 
@@ -174,6 +174,24 @@
     (println (utils/color-str :yellow "Missing step for : " (:raw step-sentence)))
     (println (utils/color-str :grey (generate-step-fn step-sentence)))))
 
+(defn- report-scenario
+  "Le scénario tel que `core/run-scenario` le rend : chaque step avec son statut,
+  ceux qui n'ont pas tourné compris, puis ce qu'un hook a levé. Rapporté une fois
+  joué, comme sous Kaocha : le step porte son :status, qui donne sa couleur à la
+  phrase."
+  [{:keys [steps exception status] :as scenario}]
+  (doseq [step steps]
+    (t/do-report {:type :begin-step, :step step})
+    (case (:status step)
+      :fail    (t/do-report {:type :step-failed, :exception (:exception step)})
+      :success (t/do-report {:type :step-succeed, :state (:output-state step)})
+      nil))
+  ;; a hook that throws fails its scenario, and the next one runs
+  (when exception
+    (t/do-report {:type :hook-failed, :exception exception}))
+  (t/do-report {:type     (if (= :success status) :scenario-succeed :scenario-failed)
+                :scenario scenario}))
+
 (defn run-feature [feature]
   (when-let [{feature-ast :scenari/feature-ast} (meta feature)]
     (let [{:keys [feature scenarios annotations description]} feature-ast]
@@ -192,38 +210,7 @@
              (when (and (:rule scenario) (not= (:rule previous) (:rule scenario)))
                (t/do-report {:type :begin-rule, :rule (:rule scenario)}))
              (t/do-report {:type :begin-scenario, :scenario scenario})
-             (let [[steps-passed? hook-exception]
-                   (try-hooks
-                    scenario
-                    (fn []
-                      (loop [state (:default-state scenario)
-                             [step & others] (:steps scenario)]
-                        (if-not step
-                          true
-                          ;; report after running, so the step carries its
-                          ;; :status and the sentence can be coloured by it
-                          (let [step-result (run-step step state)]
-                            (t/do-report {:type :begin-step, :step step-result})
-                            (if (= (:status step-result) :fail)
-                              (do
-                                (t/do-report {:type :step-failed, :exception (:exception step-result)})
-                                (doseq [pending others]
-                                  (t/do-report {:type :begin-step, :step (assoc pending :status :pending)}))
-                                false)
-                              (do
-                                (t/do-report {:type :step-succeed, :state (:output-state step-result)})
-                                (recur (:output-state step-result) others)))))))
-                    #(if % :success :fail))]
-               ;; a hook that throws fails its scenario, and the next one runs
-               (when hook-exception
-                 ;; nil: a :pre hook threw, the steps never ran
-                 (when (nil? steps-passed?)
-                   (doseq [pending (:steps scenario)]
-                     (t/do-report {:type :begin-step, :step (assoc pending :status :pending)})))
-                 (t/do-report {:type :hook-failed, :exception hook-exception}))
-               (if (and steps-passed? (not hook-exception))
-                 (t/do-report {:type :scenario-succeed, :scenario scenario})
-                 (t/do-report {:type :scenario-failed, :scenario scenario})))
+             (report-scenario (run-scenario scenario))
              (when (and (:rule scenario) (not= (:rule scenario) (:rule following)))
                (t/do-report {:type :end-rule, :rule (:rule scenario)})))
            (t/do-report {:type :end-feature, :feature feature :succeed? @*feature-succeed*})))))))

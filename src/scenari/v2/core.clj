@@ -279,14 +279,23 @@
                  (assoc :started-at started-at :duration-ns (- (System/nanoTime) t0))
                  (assoc :status :fail)))))))
 
-(defn run-steps [steps state [step & others]]
-  (if-not step
-    steps
-    (let [{:keys [output-state status] :as step-result} (run-step step state)
-          steps (map #(if (= (:order step-result) (:order %)) step-result %) steps)]
-      (if (= status :fail)
-        steps
-        (recur steps output-state others)))))
+(defn run-steps
+  "Joue `todo` dans l'ordre à partir de `state` et s'arrête au premier step qui
+  échoue. Rend `steps`, ceux qui ont tourné remplacés par leur résultat : les
+  autres gardent leur statut. C'est la seule boucle sur les steps, les trois
+  runners passent par elle."
+  [steps state todo]
+  (let [ran (loop [ran {} state state [step & others] todo]
+              (if-not step
+                ran
+                (let [{:keys [output-state status] :as result} (run-step step state)
+                      ran (assoc ran (:order result) result)]
+                  (if (= status :fail)
+                    ran
+                    (recur ran output-state others)))))]
+    ;; un seul passage : remplacer à chaque step empilait des `map` paresseux,
+    ;; 870 ms pour 5 000 steps
+    (mapv #(get ran (:order %) %) steps)))
 
 (defn- call-hook
   "Un hook qui n'a qu'une arité à un argument reçoit ctx ; tout autre est appelé
@@ -435,7 +444,7 @@
   ([scenario] (run-scenario scenario nil))
   ([scenario failure]
    (let [started-at (System/currentTimeMillis)
-         pending-steps (map #(assoc % :status :pending) (:steps scenario))
+         pending-steps (mapv #(assoc % :status :pending) (:steps scenario))
          [result-steps e] (if failure
                             [nil failure]
                             (try-hooks scenario
@@ -448,18 +457,20 @@
          (assoc :status (if e :fail (steps-status result-steps)))
          (cond-> e (assoc :exception e))))))
 
-(defn run-scenarios [scenarios [scenario & others]]
-  (if-not scenario
-    scenarios
-    (let [scenario-result (run-scenario scenario)
-          scenarios (map #(if (= (:id %) (:id scenario)) scenario-result %) scenarios)]
-      (recur scenarios others))))
+(defn run-scenarios
+  "Joue `todo` dans l'ordre et rend `scenarios`, ceux qui ont tourné remplacés
+  par leur résultat."
+  [scenarios todo]
+  ;; en un passage, comme run-steps : les `map` empilés levaient une
+  ;; StackOverflowError à 20 000 scénarios
+  (let [ran (into {} (map (juxt :id identity)) (mapv run-scenario todo))]
+    (mapv #(get ran (:id %) %) scenarios)))
 
 (defn run-feature [feature]
   (let [{:keys [scenarios] :as feature-ast} (get (meta feature) :scenari/feature-ast)
         [ran e] (try-hooks feature-ast #(run-scenarios scenarios scenarios))
         ;; un hook d'entrée a levé, rien n'a tourné : chaque scénario échoue à sa place
-        scenarios (or ran (map #(run-scenario % e) scenarios))]
+        scenarios (or ran (mapv #(run-scenario % e) scenarios))]
     (-> feature-ast
         (assoc :scenarios scenarios)
         (assoc :status (if (or e (contains? (set (map :status scenarios)) :fail)) :fail :success))
