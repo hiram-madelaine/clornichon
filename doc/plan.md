@@ -58,6 +58,7 @@ Règles :
 | 25 | Kaocha n'est plus une dépendance                            | 6   | important | FAIT | branche `feat/kaocha-optional`, partie de celle de 24 ; rupture notée au CHANGELOG |
 | 26 | Une seule boucle d'exécution                                | 6   | modéré    | FAIT | branche `refactor/single-execution-loop`, partie de celle de 25 ; scénarios d'Electre non joués |
 | 27 | Page « Known limits »                                       | 6   | mineur    | FAIT | branche `docs/known-limits`, partie de celle de 26 ; doc seule |
+| R11 | Release 0.2.0 (24 à 27, tout le lot 6)                     | 6   | —         | EN COURS | préparée sur la branche locale `release/0.2.0` ; restent les scénarios d'Electre, la fusion de la PR 17, `./release.sh minor` avec les identifiants Clojars |
 
 Ordre proposé : 12 (le seul critique), 13 (pour que R9 ne refasse pas l'erreur de
 0.1.10), 14, 21, R9 ; puis 15 à 20 et 22 dans l'ordre, R10. Les items 16 à 22 sont
@@ -758,6 +759,49 @@ parallèle, les namespaces nommés `scenari`.
 
 Fait. Pas d'entrée au CHANGELOG, la doc seule change. Les ancres et les fichiers que la
 page cite existent, `doc/cljdoc.edn` se lit.
+
+### R11. Release 0.2.0
+Les items 24 à 27, tout le lot 6. Une seule PR pour le lot, la 17 : `docs/known-limits`
+vers `master`, un commit par item.
+
+Version : `minor`, décidé le 2026-09-28. Kaocha retiré des dépendances est une rupture,
+notée au CHANGELOG : un projet qui le recevait par Clornichon doit le déclarer. La
+release avait d'abord été préparée en 0.1.12.
+
+Préparée le 2026-09-28 : « Prepare 0.2.0 » sur la branche locale `release/0.2.0`,
+partie de la tête de la PR 17, non poussée. `master` n'est pas touché, la PR n'étant pas
+fusionnée : le « Prepare » y sera repris par `git cherry-pick` une fois qu'elle l'est.
+
+Vérifié sur la branche :
+- `./test.sh` : 100 tests, 352 assertions, 0 échec ;
+- le jar, construit dans un répertoire jetable sans l'étape `install` : 13 sources sous
+  `scenari/` et `kaocha/`, et `META-INF/` ; son pom porte 5 dépendances, sans Kaocha ;
+- ce jar dans un projet jetable sans Kaocha, sous `clojure.test` : un scénario passe, un
+  scénario en échec est compté, aucun namespace `kaocha.*` n'est chargé, 13 jars au
+  classpath, le sien compris ; deux phrases qui font le même nom lèvent ;
+- essai à blanc, `./release.sh minor` : `Docs are ready for 0.2.0`, puis arrêt sur
+  `CLOJARS_USERNAME is not set`. Rien n'est tagué.
+
+Reste, dans l'ordre :
+1. jouer les scénarios d'Electre avec la branche, ce que l'item 26 demande avant la
+   release. Non fait ici : le lanceur purge un schéma de base et des collections Solr.
+   Le Clornichon local se substitue par un alias, sans rien modifier dans Electre :
+
+   ```bash
+   O='{:aliases {:branch {:override-deps {io.github.hiram-madelaine/clornichon {:local/root "/Users/hmadelaine/devel/clones/clornichon"}}}}}'
+   # diffusion/backend, type Kaocha
+   DATA_ISOLATION_ID=local_test LOG_FORMAT=TEXT clojure -Sdeps "$O" -M:dev:test:branch -m kaocha.runner --focus :scenario
+   # bo/backend, runner clojure.test
+   DATA_ISOLATION_ID=local_test LOG_FORMAT=TXT clojure -Sdeps "$O" -M:test:branch -m kaocha.runner --focus :scenario
+   ```
+
+   Vérifié sans lancer de test : avec cet alias, le classpath des deux modules porte
+   `clornichon/src` et Kaocha 1.91.1392 ;
+2. fusionner la PR 17 ;
+3. sur `master` à jour, reprendre le « Prepare », puis `./release.sh minor` avec les
+   identifiants Clojars ;
+4. demander le build cljdoc de 0.2.0, vérifier que son README installe 0.2.0, passer
+   R11 à `FAIT`.
 
 ## Vérifié par l'audit, rien à faire
 

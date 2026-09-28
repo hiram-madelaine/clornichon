@@ -3,6 +3,8 @@ All notable changes to this project will be documented in this file. This change
 
 # [Unreleased] #
 
+# [0.2.0] - 2026-09-28 #
+
 ## Fixed ##
 
 Two sentences that make the same var name no longer replace one another. A
