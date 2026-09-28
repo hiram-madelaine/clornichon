@@ -87,3 +87,4 @@ Missing step for : When I remove 1 item
 * [Step expressions](step-expressions.md): tokens, regexes, datatables and doc strings
 * [State and hooks](state-and-hooks.md): initial state, chaining, before/after
 * [Development workflow](development-workflow.md): the full cycle, in depth
+* [Known limits](known-limits.md): what it does not do, and what to do about it

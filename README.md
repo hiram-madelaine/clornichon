@@ -68,6 +68,7 @@ Also on [cljdoc](https://cljdoc.org/d/io.github.hiram-madelaine/clornichon).
 * [Step expressions](doc/step-expressions.md): cucumber expressions, regexes, datatables, doc strings, missing steps
 * [State and hooks](doc/state-and-hooks.md): chaining steps, initial state, before/after hooks
 * [Running features](doc/running.md): clojure.test, Kaocha, `--tags`, `--dry-run`, `--doc-html`
+* [Known limits](doc/known-limits.md): what it does not do, and what to do about it
 * [Migrating from scenari](doc/migrating-from-scenari.md)
 * [Development workflow](doc/development-workflow.md)
 * [Glossary](doc/glossary.md)

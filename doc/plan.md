@@ -57,6 +57,7 @@ Règles :
 | 24 | Deux phrases pour un même nom de var : `defglue` lève       | 6   | important | FAIT | branche `fix/glue-name-collision` ; Electre : aucune collision, chargement identique |
 | 25 | Kaocha n'est plus une dépendance                            | 6   | important | FAIT | branche `feat/kaocha-optional`, partie de celle de 24 ; rupture notée au CHANGELOG |
 | 26 | Une seule boucle d'exécution                                | 6   | modéré    | FAIT | branche `refactor/single-execution-loop`, partie de celle de 25 ; scénarios d'Electre non joués |
+| 27 | Page « Known limits »                                       | 6   | mineur    | FAIT | branche `docs/known-limits`, partie de celle de 26 ; doc seule |
 
 Ordre proposé : 12 (le seul critique), 13 (pour que R9 ne refasse pas l'erreur de
 0.1.10), 14, 21, R9 ; puis 15 à 20 et 22 dans l'ordre, R10. Les items 16 à 22 sont
@@ -730,6 +731,33 @@ Electre : les namespaces de scénarios se chargent comme avant. Les scénarios n
 été joués, et c'est leur exécution que cet item touche : `bo/backend` passe par le
 runner `clojure.test`, `diffusion/backend` par le type Kaocha. À lancer avant la
 release.
+
+### 27. Page « Known limits » — mineur
+
+Ce que la comparaison du 2026-09-28 a relevé et qui ne vaut pas un correctif : le dire,
+avec quoi faire à la place. `doc/known-limits.md`, liée depuis le README,
+`doc/getting-started.md` et `doc/cljdoc.edn`.
+
+Reproduit par un script avant d'être écrit :
+
+| Limite                                   | Constat |
+|------------------------------------------|---------|
+| état `nil`, `true` ou `false`            | le step suivant reçoit l'état d'avant ; sous une clé, `{:found? false}` passe |
+| type de paramètre, registre unique       | `{price}` redéfini sans `EUR` : « team a pays 12 EUR » ne trouve plus son glue |
+| même phrase deux fois dans un namespace  | un glue, celui de la seconde définition |
+| glue supprimé, au REPL                   | toujours trouvé après rechargement ; après `ns-unmap` seul aussi, le cache n'étant refait qu'au chargement d'un namespace ou à la définition d'un glue |
+| pas de relance d'un scénario en échec    | `--focus` sur l'id imprimé par `FAIL in` ne rejoue que lui, par id complet comme par nom |
+| couleurs sans Kaocha                     | le filtre `perl` de la page : 8 séquences d'échappement avant, 0 après |
+
+Corrigé par rapport au constat du plan proposé : un `remove-ns` seul ne laisse pas le
+cache périmé, le nombre de namespaces change. C'est `ns-unmap` qui le laisse, et un
+`remove-ns` suivi du chargement d'un autre namespace dans le même intervalle.
+
+Sans reproduction, ce sont des absences : pas de hook autour d'un step, pas d'exécution
+parallèle, les namespaces nommés `scenari`.
+
+Fait. Pas d'entrée au CHANGELOG, la doc seule change. Les ancres et les fichiers que la
+page cite existent, `doc/cljdoc.edn` se lit.
 
 ## Vérifié par l'audit, rien à faire
 
