@@ -4,6 +4,7 @@
   ["Step Expressions" {:file "doc/step-expressions.md"}]
   ["State and Hooks" {:file "doc/state-and-hooks.md"}]
   ["Running Features" {:file "doc/running.md"}]
+  ["Known Limits" {:file "doc/known-limits.md"}]
   ["Migrating from scenari" {:file "doc/migrating-from-scenari.md"}]
   ["Development Workflow" {:file "doc/development-workflow.md"}]
   ["Glossary" {:file "doc/glossary.md"}]
