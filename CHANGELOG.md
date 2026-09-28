@@ -3,6 +3,8 @@ All notable changes to this project will be documented in this file. This change
 
 # [Unreleased] #
 
+# [0.2.1] - 2026-09-28 #
+
 ## Fixed ##
 
 cljdoc builds the API docs again. It loads every namespace of the jar with the

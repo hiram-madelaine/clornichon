@@ -27,9 +27,9 @@
 
 ```clojure
 ;; deps.edn
-io.github.hiram-madelaine/clornichon {:mvn/version "0.2.0"}
+io.github.hiram-madelaine/clornichon {:mvn/version "0.2.1"}
 ;; or project.clj
-[io.github.hiram-madelaine/clornichon "0.2.0"]
+[io.github.hiram-madelaine/clornichon "0.2.1"]
 ```
 
 That is all `clojure.test` needs. To run the features under Kaocha, declare Kaocha too: Clornichon does not bring it.

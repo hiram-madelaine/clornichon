@@ -341,9 +341,9 @@ For the maintainers of the library. `release.sh` tags, builds, publishes to Cloj
 
 ### Commit the "Prepare"
 
-The pom points to the tag, and cljdoc builds its documentation from it: the docs have to be ready in the commit the tag lands on. In one commit, `Prepare 0.2.0`:
+The pom points to the tag, and cljdoc builds its documentation from it: the docs have to be ready in the commit the tag lands on. In one commit, `Prepare 0.2.1`:
 
-- date the `[Unreleased]` section of `CHANGELOG.md` as the version to come, `# [0.2.0] - 2026-09-28`;
+- date the `[Unreleased]` section of `CHANGELOG.md` as the version to come, `# [0.2.1] - 2026-09-28`;
 - install that version in `README.md` and in `doc/getting-started.md`.
 
 ### Dry run
@@ -351,18 +351,18 @@ The pom points to the tag, and cljdoc builds its documentation from it: the docs
 Without the Clojars credentials, the script checks that and stops before it tags:
 
 ```bash
-./release.sh minor
-# Docs are ready for 0.2.0
+./release.sh patch
+# Docs are ready for 0.2.1
 # ... CLOJARS_USERNAME is not set
 ```
 
 It says what is missing, and refuses a working tree with uncommitted changes:
 
 ```
-CHANGELOG.md has no dated section for 0.2.0
-README.md does not install 0.2.0
-doc/getting-started.md does not install 0.2.0
-Nothing tagged: commit the "Prepare 0.2.0" first.
+CHANGELOG.md has no dated section for 0.2.1
+README.md does not install 0.2.1
+doc/getting-started.md does not install 0.2.1
+Nothing tagged: commit the "Prepare 0.2.1" first.
 ```
 
 ### Release

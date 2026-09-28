@@ -60,7 +60,7 @@ Règles :
 | 27 | Page « Known limits »                                       | 6   | mineur    | FAIT | branche `docs/known-limits`, partie de celle de 26 ; doc seule |
 | R11 | Release 0.2.0 (24 à 27, tout le lot 6)                     | 6   | —         | FAIT | publiée sur Clojars, tag `v0.2.0` ; build cljdoc en échec, voir 28 |
 | 28 | cljdoc ne charge pas les `kaocha.*` sans Kaocha au pom       | 6   | important | FAIT | branche `fix/cljdoc-kaocha-optional` ; Kaocha optionnel au pom |
-| R12 | Release 0.2.1 (28)                                          | 6   | —         | À FAIRE | cljdoc de 0.2.0 ne se rattrape pas, sauf exception dans `cljdoc-analyzer` |
+| R12 | Release 0.2.1 (28)                                          | 6   | —         | EN COURS | PR 18 fusionnée, « Prepare 0.2.1 » sur `master`, non poussé ; reste `./release.sh patch` avec les identifiants Clojars, puis le build cljdoc |
 
 Ordre proposé : 12 (le seul critique), 13 (pour que R9 ne refasse pas l'erreur de
 0.1.10), 14, 21, R9 ; puis 15 à 20 et 22 dans l'ordre, R10. Les items 16 à 22 sont
