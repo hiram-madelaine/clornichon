@@ -497,15 +497,31 @@
       (string/replace "/" "-")
       symbol))
 
+(defn check-glue-name!
+  "Lève si `sym` nomme déjà, dans `ns`, le glue d'une autre phrase. `a b` et
+  `a-b` font le même nom de var : le second `defn` remplaçait le premier glue
+  sans rien dire, et ses steps se retrouvaient sans définition. La même phrase
+  repasse, c'est un rechargement."
+  [^clojure.lang.Namespace ns sym step]
+  (let [defined (:step (meta (.findInternedVar ns sym)))]
+    (when (and defined (not= (str defined) (str step)))
+      (throw (ex-info (str "glue " ns "/" sym " : \"" step "\" and \"" defined
+                           "\" make the same var name, the second definition would"
+                           " replace the first. Reword one; if the first is no longer"
+                           " in the source, (ns-unmap '" ns " '" sym ")")
+                      {:ns (ns-name ns) :name sym :step step :defined defined})))))
+
 ;; TODO make a step evaluable as a standalone fun
 (defmacro defglue
   "Defines a step: an ordinary var carrying the step's regex as :step metadata,
   there is no registry. The keyword a step was written with plays no part in the
   definition, so defgiven / defwhen / defthen / defand are four names for this
-  one macro. Returns the var, like every other Clojure def*."
+  one macro. Returns the var, like every other Clojure def*. Throws when the
+  name drawn from the sentence is already the one of another sentence."
   [regex params & body]
   (let [sym (re->symbol regex)]
-    `(do (defn ~(vary-meta sym assoc :step regex) ~params (into [] [~@body]))
+    `(do (check-glue-name! (the-ns '~(ns-name *ns*)) '~sym ~regex)
+         (defn ~(vary-meta sym assoc :step regex) ~params (into [] [~@body]))
          ;; redefining a step in an already loaded ns leaves (count (all-ns))
          ;; unchanged, which is what all-glues memoizes on
          (glue/invalidate-glues-cache!)

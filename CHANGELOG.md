@@ -3,6 +3,15 @@ All notable changes to this project will be documented in this file. This change
 
 # [Unreleased] #
 
+## Fixed ##
+
+Two sentences that make the same var name no longer replace one another. A
+glue is a var named after its sentence, and `I have a b` and `I have a-b` both
+make `I-have-a-b`: the second definition replaced the first without a word, and
+the steps of the first were reported missing. `defgiven` and its siblings now
+throw, naming both sentences. The same sentence defined again goes through, as
+a reload does. See `doc/step-expressions.md`.
+
 # [0.1.11] - 2026-09-27 #
 
 ## Fixed ##
