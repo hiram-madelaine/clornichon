@@ -54,6 +54,7 @@ Règles :
 | 22 | Un `is` qui échoue dans un hook laisse le run vert          | 5   | modéré    | FAIT | PR 6 ; trouvé en traitant 21 ; dans `call-hook`, `:error` compris |
 | 23 | Un `is` dont la forme lève dans un step laisse le run vert  | 5   | modéré    | FAIT | PR 7 ; trouvé en traitant 22 |
 | R10 | Release 0.1.12 (15 à 20, 22, 23)                           | 5   | —         | ABANDONNÉ | tout était fusionné avant R9 : parti en 0.1.11 |
+| 24 | Deux phrases pour un même nom de var : `defglue` lève       | 6   | important | FAIT | branche `fix/glue-name-collision` ; Electre : aucune collision, chargement identique |
 
 Ordre proposé : 12 (le seul critique), 13 (pour que R9 ne refasse pas l'erreur de
 0.1.10), 14, 21, R9 ; puis 15 à 20 et 22 dans l'ordre, R10. Les items 16 à 22 sont
@@ -544,6 +545,64 @@ le compte d'un step qui lève.
 Après 15 à 20, 22 et 23. Peut se scinder si un item traîne.
 
 Abandonnée : ses items sont partis en 0.1.11, voir R9.
+
+### 24. Deux phrases pour un même nom de var : `defglue` lève — important
+
+Lot 6, ouvert le 2026-09-28 après la comparaison avec kaocha-cucumber et Burpless. Seul
+cet item est décidé : les autres propositions du lot n'ont pas encore de ligne ici.
+
+Constat, reproduit par un script : dans un même namespace, `(defgiven "I have a-b" ...)`
+puis `(defgiven "I have a b" ...)` ne laissent qu'un glue, celui de la seconde phrase.
+La première n'a plus de définition, ses steps sortent en `Missing step`, et rien ne le
+dit au chargement.
+
+Où : `src/scenari/v2/core.clj`, `re->symbol` tire le nom du var de la phrase — les
+espaces et les `/` deviennent `-`, `\"(.*)\"` devient `param` — et `defglue` fait un
+`defn` de ce nom.
+
+Correctif : `check-glue-name!`, appelé par `defglue` avant son `defn`, lève si le nom
+est déjà celui d'un glue du namespace dont la phrase diffère, en citant les deux. Les
+phrases sont comparées par leur texte : une regex et une chaîne de même texte sont la
+même phrase. La même phrase repasse, c'est un rechargement. La vérification est faite à
+l'exécution et non à l'expansion de la macro : elle voit aussi deux glues écrits dans
+une même forme.
+
+Limite : au REPL, une phrase reformulée en une autre qui fait le même nom lève aussi, le
+var de la première étant toujours là. Le message donne le `ns-unmap` à faire.
+
+Tests : `glue_test.clj`, `glue-name-collision-test`. Doc : `doc/step-expressions.md`,
+« Two sentences, one name ». CHANGELOG : `Fixed`.
+
+Fait. Le test échoue sans le correctif, sur deux de ses quatre assertions. Un fichier de
+glues qui porte les deux phrases ne se charge plus, et l'erreur donne la ligne de la
+seconde :
+
+```
+Syntax error compiling at (w3/glue.clj:6:1).
+glue w3.glue/I-have-a-b : "I have a b" and "I have a-b" make the same var name, the
+second definition would replace the first. Reword one; if the first is no longer in
+the source, (ns-unmap 'w3.glue 'I-have-a-b)
+```
+
+Vérifié sur Electre le 2026-09-28, checkout `refonte` à `584b0800e4`, sans rien y
+modifier :
+- balayage du texte des sources, le nom calculé par le vrai `re->symbol` : 36 fichiers,
+  486 définitions en comptant celles que `#_` commente, aucun nom partagé par deux
+  phrases ;
+- chargement des namespaces de `test/scenario` comme le fait `-load`, sans Kaocha ni
+  hooks, avec la 0.1.11 puis avec la branche :
+
+| Module              | Namespaces | Glues | Features | Scénarios | Steps | Sans glue | 0.1.11 et branche |
+|---------------------|------------|-------|----------|-----------|-------|-----------|-------------------|
+| `diffusion/backend` | 72         | 406   | 190      | 397       | 2 832 | 0         | identiques        |
+| `bo/backend`        | 8          | 6     | 0        | 0         | 0     | 0         | identiques        |
+
+- `bo/account-domain` ne se charge ni avec l'une ni avec l'autre : `test-utils` n'est pas
+  sur son classpath de test. Ses trois fichiers de glues sont dans le balayage ;
+- corpus : les 222 features de `diffusion/domain/resources/scenarios` se parsent.
+
+Les scénarios d'Electre n'ont pas été joués : l'item ne touche que la définition d'un
+glue, pas son exécution.
 
 ## Vérifié par l'audit, rien à faire
 

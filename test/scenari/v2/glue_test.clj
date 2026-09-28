@@ -11,6 +11,20 @@
       (eval '(scenari.v2.core/defgiven "a step defined after the cache was warmed up" [state] state)))
     (is (some #(= "a step defined after the cache was warmed up" (:step %)) (glue/all-glues)))))
 
+(deftest glue-name-collision-test
+  (let [define #(binding [*ns* (find-ns 'scenari.v2.glue-test)] (eval %))]
+    (define '(scenari.v2.core/defgiven "a name made twice" [state] :first))
+    (testing "une autre phrase qui fait le même nom de var lève, et le premier glue reste"
+      (is (thrown-with-msg? clojure.lang.ExceptionInfo
+                            #"\"a name made-twice\" and \"a name made twice\" make the same var name"
+                            (define '(scenari.v2.core/defgiven "a name made-twice" [state] :second))))
+      (is (= "a name made twice"
+             (:step (meta (ns-resolve 'scenari.v2.glue-test 'a-name-made-twice))))))
+    (testing "la même phrase repasse : c'est un rechargement"
+      (is (var? (define '(scenari.v2.core/defgiven "a name made twice" [state] :again)))))
+    (testing "une regex et une chaîne de même texte sont la même phrase"
+      (is (var? (define '(scenari.v2.core/defgiven #"a name made twice" [state] :regex)))))))
+
 ;; ns-proximity-score tests
 (deftest ns-proximity-score-test
   (testing "Calculates proximity score between namespaces"

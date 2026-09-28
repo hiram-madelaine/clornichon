@@ -89,3 +89,9 @@ With Kaocha, `--dry-run` lists every missing step without running anything -- se
 ## Same sentence, several glues
 
 When a sentence matches glues in several namespaces, the one closest to the feature's namespace wins. Two glues at the same distance raise an error listing both.
+
+## Two sentences, one name
+
+A glue is a var, named after its sentence: spaces and `/` become `-`. Two sentences of one namespace can make the same name -- `I have a b` and `I have a-b` both make `I-have-a-b` -- and the second definition throws, naming both. Reword one of them.
+
+Defining the same sentence again goes through: that is what a reload does. At the REPL, a sentence reworded into one that makes the same name throws too, since the var of the first is still there: `(ns-unmap *ns* 'I-have-a-b)`, then evaluate the new one.
