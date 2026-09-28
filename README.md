@@ -32,6 +32,8 @@ io.github.hiram-madelaine/clornichon {:mvn/version "0.1.11"}
 [io.github.hiram-madelaine/clornichon "0.1.11"]
 ```
 
+That is all `clojure.test` needs. To run the features under Kaocha, declare Kaocha too: Clornichon does not bring it.
+
 ## In a nutshell
 
 ```gherkin

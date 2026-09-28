@@ -55,6 +55,7 @@ Règles :
 | 23 | Un `is` dont la forme lève dans un step laisse le run vert  | 5   | modéré    | FAIT | PR 7 ; trouvé en traitant 22 |
 | R10 | Release 0.1.12 (15 à 20, 22, 23)                           | 5   | —         | ABANDONNÉ | tout était fusionné avant R9 : parti en 0.1.11 |
 | 24 | Deux phrases pour un même nom de var : `defglue` lève       | 6   | important | FAIT | branche `fix/glue-name-collision` ; Electre : aucune collision, chargement identique |
+| 25 | Kaocha n'est plus une dépendance                            | 6   | important | FAIT | branche `feat/kaocha-optional`, partie de celle de 24 ; rupture notée au CHANGELOG |
 
 Ordre proposé : 12 (le seul critique), 13 (pour que R9 ne refasse pas l'erreur de
 0.1.10), 14, 21, R9 ; puis 15 à 20 et 22 dans l'ordre, R10. Les items 16 à 22 sont
@@ -603,6 +604,62 @@ modifier :
 
 Les scénarios d'Electre n'ont pas été joués : l'item ne touche que la définition d'un
 glue, pas son exécution.
+
+### 25. Kaocha n'est plus une dépendance — important
+
+Constat, reproduit : un projet qui ne lance ses features qu'avec `clojure.test`
+télécharge Kaocha et ce qu'il tire, 32 jars au lieu de 12. Et le lanceur `clojure.test`
+charge deux namespaces de Kaocha, `kaocha.output` et `kaocha.jit`, pour une seule
+question : faut-il colorer le rapport.
+
+Où : `deps.edn`, `lambdaisland/kaocha` dans `:deps` ; `src/scenari/utils.clj`, le
+`require` de `kaocha.output`, que `scenari.v2.test` charge à son tour.
+
+Correctif :
+- `scenari.utils` cherche `kaocha.output/*colored-output*` par `resolve` au lieu de le
+  requérir. Kaocha chargé, son `--color` / `--no-color` est suivi comme avant ; sans lui
+  le rapport est coloré ;
+- Kaocha passe de `:deps` à l'alias `:test` du repo, à la même version. Le pom est écrit
+  depuis `deps.edn` : il ne le porte plus. Le type de test et les plugins restent dans
+  le jar.
+
+Rupture : un projet qui tenait Kaocha de Clornichon doit le déclarer. CHANGELOG :
+`Changed`, avec la note de `commons-io` et de `tools.logging`. Doc : `README.md`,
+`doc/running.md`, `doc/migrating-from-scenari.md` — scenari 2.0.2 déclarait Kaocha lui
+aussi.
+
+Tests : `report_test.clj`, `no-kaocha-in-the-library-namespaces-test` lit la forme `ns`
+de chaque fichier de `src/scenari`. Les tests de couleur existants lient la var de
+Kaocha et passent sans changement.
+
+Fait. `./test.sh` : 98 tests, 348 assertions. Vérifié sur deux projets jetables :
+
+| Projet                         | Résultat |
+|--------------------------------|----------|
+| sans Kaocha, `clojure.test`    | la feature passe, rapport coloré, aucun namespace ni jar de Kaocha |
+| sans Kaocha, `-m kaocha.runner`| `Could not locate kaocha/runner__init.class, ...` |
+| Kaocha 1.91.1392 déclaré       | la feature passe ; 8 séquences d'échappement avec `--color`, 0 avec `--no-color` |
+
+Le pom écrit dans un répertoire jetable porte 5 dépendances : clojure, gherkin,
+cucumber-expressions, tag-expressions, tools.namespace.
+
+Vérifié sur Electre le 2026-09-28, sans rien y modifier. Les quatre modules qui
+dépendent de Clornichon déclarent Kaocha eux-mêmes, et leur classpath de test est le
+même avec la 0.1.11 et avec la branche, au jar de Clornichon près :
+
+| Module               | Kaocha déclaré | Jars, 0.1.11 | Jars, branche |
+|----------------------|----------------|--------------|---------------|
+| `bo/backend`         | 1.91.1392      | 851          | 850           |
+| `bo/account-domain`  | 0.0-367        | 102          | 101           |
+| `diffusion/backend`  | 1.91.1392      | 839          | 838           |
+| `diffusion/import`   | 1.0.700        | 769          | 768           |
+
+Le chargement des namespaces de scénarios de `diffusion/backend` et de `bo/backend`
+donne les mêmes comptes qu'à l'item 24.
+
+Laissé de côté : sans Kaocha, rien n'éteint les couleurs du lanceur `clojure.test`. Lire
+`NO_COLOR` dans `scenari.utils` le jour où quelqu'un redirige un tel run vers un
+fichier.
 
 ## Vérifié par l'audit, rien à faire
 

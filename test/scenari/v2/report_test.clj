@@ -1,5 +1,6 @@
 (ns scenari.v2.report-test
-  (:require [clojure.string :as string]
+  (:require [clojure.java.io :as io]
+            [clojure.string :as string]
             [clojure.test :refer [deftest testing is]]
             [clojure.test :as t]
             [kaocha.output :as output]
@@ -119,3 +120,12 @@
         (is (= (str "  Given a book\n"
                     "      | title | Dune |\n")
                (render {:type :begin-step :step (assoc table :status :success)})))))))
+
+(deftest no-kaocha-in-the-library-namespaces-test
+  (testing "Kaocha n'est pas une dépendance de la bibliothèque : aucun namespace
+  scenari.* ne le requiert, le lanceur clojure.test tourne sans lui"
+    (is (empty? (for [f     (file-seq (io/file "src/scenari"))
+                      :when (.isFile f)
+                      sym   (tree-seq coll? seq (read-string (slurp f)))
+                      :when (and (symbol? sym) (string/starts-with? (str sym) "kaocha"))]
+                  [(str f) sym])))))

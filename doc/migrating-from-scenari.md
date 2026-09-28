@@ -11,7 +11,7 @@ Clornichon forks scenari 2.0.2 ([why](adr/0002-fork-scenari.md)). The migration 
 
 ## How to migrate
 
-1. Swap the dependency: `io.defsquare/scenari` (or the `io.github.hiram-madelaine/scenari` git dep) becomes `io.github.hiram-madelaine/clornichon`. Your namespaces and the `:kaocha.type/scenari` suites of `tests.edn` stay as they are.
+1. Swap the dependency: `io.defsquare/scenari` (or the `io.github.hiram-madelaine/scenari` git dep) becomes `io.github.hiram-madelaine/clornichon`. Your namespaces and the `:kaocha.type/scenari` suites of `tests.edn` stay as they are. scenari brought Kaocha along, Clornichon does not: declare `lambdaisland/kaocha` yourself if your project got it that way.
 2. Add the plugin to `tests.edn` and run `--dry-run`: it lists every step that no longer resolves a glue, with the feature and scenario using it, without running anything.
    ```clojure
    :kaocha/plugins [:kaocha.plugin/scenari-dry-run]

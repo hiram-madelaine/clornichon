@@ -9,7 +9,6 @@
              ;; 6.1.2 est la dernière version sans dépendance transitive : les
              ;; 9.x/11.x tirent jspecify, et 11.0.1 avec une plage de versions
              io.cucumber/tag-expressions         {:mvn/version "6.1.2"}
-             lambdaisland/kaocha                 {:mvn/version "1.87.1366"}
              org.clojure/tools.namespace         {:mvn/version "0.3.1"}}
 
  :aliases   {:artifact-name {:extra-deps {metav/metav {:git/url "https://github.com/jgrodziski/metav/"
@@ -25,7 +24,10 @@
                              :ns-default  build}
 
              :test          {:extra-paths ["test"]
-                             :extra-deps  {org.clojure/test.check         {:mvn/version "1.1.0"}
+                             ;; Kaocha is not a dependency of the library: who runs its
+                             ;; features under Kaocha declares it, as here
+                             :extra-deps  {lambdaisland/kaocha           {:mvn/version "1.87.1366"}
+                                           org.clojure/test.check        {:mvn/version "1.1.0"}
                                            metosin/testit                {:mvn/version "0.4.0"}
                                            lambdaisland/kaocha-junit-xml {:mvn/version "1.17.101"}}}
              :runner        {:extra-deps {com.cognitect/test-runner {:git/url "https://github.com/cognitect-labs/test-runner"

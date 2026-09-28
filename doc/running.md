@@ -26,7 +26,7 @@ There are three ways to run a feature, depending on your situation.
 ;; ________________________
 ```
 
-Output is colorized along the Gherkin syntax: keywords in bold cyan, parameters in yellow, and the sentence itself in green, red or grey depending on whether the step passed, failed or never ran. Tags are cyan; descriptions, doc strings and datatable separators grey. Coloring honours Kaocha's `--color` / `--no-color`, so a piped or CI run can be kept plain.
+Output is colorized along the Gherkin syntax: keywords in bold cyan, parameters in yellow, and the sentence itself in green, red or grey depending on whether the step passed, failed or never ran. Tags are cyan; descriptions, doc strings and datatable separators grey. Under Kaocha, coloring honours `--color` / `--no-color`, so a piped or CI run can be kept plain. Without Kaocha the output is always colored.
 
 ## As data
 
@@ -45,7 +45,14 @@ Useful at the REPL, for debugging.
 
 ## Kaocha
 
-Declare a suite of type `:kaocha.type/scenari` in `tests.edn`:
+Kaocha is not a dependency of Clornichon: declare it in the alias that runs your tests.
+
+```clojure
+;; deps.edn
+:test {:extra-deps {lambdaisland/kaocha {:mvn/version "1.91.1392"}}}
+```
+
+Then declare a suite of type `:kaocha.type/scenari` in `tests.edn`:
 
 ```clojure
 #kaocha/v1

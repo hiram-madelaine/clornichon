@@ -12,6 +12,18 @@ the steps of the first were reported missing. `defgiven` and its siblings now
 throw, naming both sentences. The same sentence defined again goes through, as
 a reload does. See `doc/step-expressions.md`.
 
+## Changed ##
+
+Kaocha is no longer a dependency. A project that runs its features under Kaocha
+must declare `lambdaisland/kaocha` itself, as most already do to pick their
+version; one that got it through Clornichon fails on `Could not locate
+kaocha/runner`. The test type and the plugins are still in the jar.
+
+A project that only uses `clojure.test` no longer downloads Kaocha and what it
+brings: 12 jars on the classpath instead of 32. The `clojure.test` runner loaded
+`kaocha.output` to know whether to color its report; it now looks the setting
+up, and colors when Kaocha is not there.
+
 # [0.1.11] - 2026-09-27 #
 
 ## Fixed ##
