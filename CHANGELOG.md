@@ -3,6 +3,15 @@ All notable changes to this project will be documented in this file. This change
 
 # [Unreleased] #
 
+## Fixed ##
+
+cljdoc builds the API docs again. It loads every namespace of the jar with the
+dependencies of the pom, and since 0.2.0 dropped Kaocha, the `kaocha.*`
+namespaces failed on `Could not locate kaocha/output`: the 0.2.0 docs were
+never built. The pom declares Kaocha again, as an optional dependency: cljdoc
+loads it, tools.deps and Maven do not pass it on, a project that only uses
+`clojure.test` still does not download it.
+
 # [0.2.0] - 2026-09-28 #
 
 ## Fixed ##
