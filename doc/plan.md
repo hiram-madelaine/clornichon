@@ -60,7 +60,7 @@ Règles :
 | 27 | Page « Known limits »                                       | 6   | mineur    | FAIT | branche `docs/known-limits`, partie de celle de 26 ; doc seule |
 | R11 | Release 0.2.0 (24 à 27, tout le lot 6)                     | 6   | —         | FAIT | publiée sur Clojars, tag `v0.2.0` ; build cljdoc en échec, voir 28 |
 | 28 | cljdoc ne charge pas les `kaocha.*` sans Kaocha au pom       | 6   | important | FAIT | branche `fix/cljdoc-kaocha-optional` ; Kaocha optionnel au pom |
-| R12 | Release 0.2.1 (28)                                          | 6   | —         | EN COURS | PR 18 fusionnée, « Prepare 0.2.1 » sur `master`, non poussé ; reste `./release.sh patch` avec les identifiants Clojars, puis le build cljdoc |
+| R12 | Release 0.2.1 (28)                                          | 6   | —         | FAIT | publiée sur Clojars, tag `v0.2.1` ; cljdoc build 115245 sans erreur |
 
 Ordre proposé : 12 (le seul critique), 13 (pour que R9 ne refasse pas l'erreur de
 0.1.10), 14, 21, R9 ; puis 15 à 20 et 22 dans l'ordre, R10. Les items 16 à 22 sont
@@ -829,6 +829,12 @@ sans Kaocha. Le build cljdoc ne se vérifie qu'une fois la version publiée.
 
 Pour 0.2.0 déjà publiée : seule une exception dans `cljdoc-analyzer` rattraperait le
 build. Pas demandée, 0.2.1 la remplace.
+
+Publiée en 0.2.1 le 2026-09-28. Vérifié après coup :
+- le tag `v0.2.1` est sur GitHub, sur le commit qui suit le « Prepare » ;
+- le pom de Clojars pointe sur `v0.2.1` et porte Kaocha avec `<optional>true</optional>` ;
+- cljdoc, build 115245 : 13 namespaces, sans erreur, `kaocha.plugin.scenari-doc`
+  compris ; son README installe 0.2.1.
 
 ## Vérifié par l'audit, rien à faire
 
