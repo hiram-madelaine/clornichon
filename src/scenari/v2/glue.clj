@@ -14,11 +14,11 @@
   (into-array Type []))
 
 (defn invalidate-glues-cache!
-  "Invalidate the `all-glues` cache. Called by the step definition macros: a glue
-   can appear in an already loaded namespace, which the namespace count alone
-   cannot detect."
-  []
-  (reset! glues-cache nil))
+  "Invalidate the `all-glues` cache, of `ns` alone when given. Called by the step
+   definition macros: a glue can appear in an already loaded namespace, which the
+   namespace count alone cannot detect."
+  ([] (reset! glues-cache nil))
+  ([ns] (swap! glues-cache #(-> % (dissoc :ns-count) (update :by-ns dissoc ns)))))
 
 (def ^:private number-type
   "`{number}` n'est pas un type cucumber - il est défini ici pour les glues déjà
@@ -89,7 +89,9 @@
    Resolving the glue of every step of every feature means scanning all the public
    vars of all the loaded namespaces once per step, which dominates the loading
    time of a large feature suite. The result is therefore memoized, and recomputed
-   as soon as a namespace is loaded or a step is (re)defined.
+   as soon as a namespace is loaded or a step is (re)defined. Per namespace: loading
+   a feature adds its namespace, and rescanning all of them each time cost ~10 s
+   over 250 features in a project of 1,100 namespaces - only the new one is read.
 
    Each glue carries its `:expression`, compiled here once, because matching a step
    compares it against every glue: compiling it in the matching loop instead built
@@ -98,16 +100,20 @@
   []
   (let [nss (all-ns)
         k   (count nss)
-        {:keys [ns-count glues]} @glues-cache]
+        {:keys [ns-count glues by-ns]} @glues-cache]
     (if (= ns-count k)
       glues
-      (let [computed (into []
-                           (comp (mapcat #(vals (ns-publics %)))
-                                 (map #(assoc (meta %) :ref %))
-                                 (filter #(contains? % :step))
-                                 (map #(assoc % :expression (step->expression %))))
-                           nss)]
-        (reset! glues-cache {:ns-count k :glues computed})
+      (let [by-ns    (into {}
+                           (map (fn [ns]
+                                  [ns (or (get by-ns ns)
+                                          (into []
+                                                (comp (map #(assoc (meta %) :ref %))
+                                                      (filter #(contains? % :step))
+                                                      (map #(assoc % :expression (step->expression %))))
+                                                (vals (ns-publics ns))))]))
+                           nss)
+            computed (into [] (mapcat by-ns) nss)]
+        (reset! glues-cache {:ns-count k :glues computed :by-ns by-ns})
         computed))))
 
 (defn ns-proximity-score

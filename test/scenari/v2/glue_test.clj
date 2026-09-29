@@ -9,7 +9,18 @@
     (glue/all-glues)                                        ;; warm up the cache
     (binding [*ns* (find-ns 'scenari.v2.glue-test)]          ;; no new namespace, so the ns count doesn't change
       (eval '(scenari.v2.core/defgiven "a step defined after the cache was warmed up" [state] state)))
-    (is (some #(= "a step defined after the cache was warmed up" (:step %)) (glue/all-glues)))))
+    (is (some #(= "a step defined after the cache was warmed up" (:step %)) (glue/all-glues))))
+  (testing "a new namespace is read alone, the glues already found are not compiled again"
+    (let [before (glue/all-glues)
+          fresh  (create-ns (gensym "scenari.v2.glue-test.fresh"))]
+      (try
+        (binding [*ns* fresh]
+          (refer-clojure)
+          (eval '(scenari.v2.core/defgiven "a step of a namespace loaded after the cache" [state] state)))
+        (let [after (glue/all-glues)]
+          (is (some #(= "a step of a namespace loaded after the cache" (:step %)) after))
+          (is (every? (fn [g] (some #(identical? (:expression g) (:expression %)) after)) before)))
+        (finally (remove-ns (ns-name fresh)))))))
 
 (deftest glue-name-collision-test
   (let [define #(binding [*ns* (find-ns 'scenari.v2.glue-test)] (eval %))]
