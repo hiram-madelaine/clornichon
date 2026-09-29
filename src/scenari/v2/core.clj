@@ -535,7 +535,7 @@
          (defn ~(vary-meta sym assoc :step regex) ~params (into [] [~@body]))
          ;; redefining a step in an already loaded ns leaves (count (all-ns))
          ;; unchanged, which is what all-glues memoizes on
-         (glue/invalidate-glues-cache!)
+         (glue/invalidate-glues-cache! (the-ns '~(ns-name *ns*)))
          (var ~sym))))
 
 (defmacro defgiven [regex params & body] `(defglue ~regex ~params ~@body))
