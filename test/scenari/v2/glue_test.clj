@@ -20,7 +20,26 @@
         (let [after (glue/all-glues)]
           (is (some #(= "a step of a namespace loaded after the cache" (:step %)) after))
           (is (every? (fn [g] (some #(identical? (:expression g) (:expression %)) after)) before)))
-        (finally (remove-ns (ns-name fresh)))))))
+        (finally (remove-ns (ns-name fresh))))))
+  (testing "a glue unmapped from a namespace already read is gone"
+    (let [sentence "a step unmapped after the cache"
+          found?   (fn [] (some #(= sentence (:step %)) (glue/all-glues)))
+          unmap!   #(ns-unmap 'scenari.v2.glue-test 'a-step-unmapped-after-the-cache)
+          define!  #(binding [*ns* (find-ns 'scenari.v2.glue-test)]
+                      (eval (list 'scenari.v2.core/defgiven sentence '[state] 'state)))]
+      (testing "once a namespace is loaded"
+        (define!)
+        (is (found?))
+        (unmap!)
+        (let [fresh (create-ns (gensym "scenari.v2.glue-test.fresh"))]
+          (try (is (not (found?)))
+               (finally (remove-ns (ns-name fresh))))))
+      (testing "once its namespace is invalidated by name"
+        (define!)
+        (is (found?))
+        (unmap!)
+        (is (nil? (glue/invalidate-glues-cache! 'scenari.v2.glue-test)))
+        (is (not (found?)))))))
 
 (deftest glue-name-collision-test
   (let [define #(binding [*ns* (find-ns 'scenari.v2.glue-test)] (eval %))]

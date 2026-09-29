@@ -3,6 +3,21 @@ All notable changes to this project will be documented in this file. This change
 
 # [Unreleased] #
 
+## Added ##
+
+`scenari.v2.glue/invalidate-glues-cache!` takes a namespace, or its name, and
+looks up the glues of that namespace alone.
+
+## Changed ##
+
+Loading a large suite is faster: the glues are looked up per namespace. Each
+feature Kaocha loads adds a namespace, and every one of them had all the
+namespaces read again and all the glue sentences compiled again. A namespace is
+now read again only when it is new or when its vars changed. On a suite of 190
+features, 2,832 steps and 406 glues, in a project of 1,378 namespaces, loading
+goes from 6.9 s to 5.4 s. The gain grows with the number of namespaces that
+hold features: that suite has 44.
+
 # [0.2.1] - 2026-09-28 #
 
 ## Fixed ##
